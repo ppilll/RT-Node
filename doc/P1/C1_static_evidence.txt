@@ -1,0 +1,61 @@
+C1 static evidence; 2026-10-16 Asia/Shanghai
+HEAD: f4d358c65dd661a8cee2541a3588939aed3ccf1c
+No compiler, linker, firmware or hardware execution performed.
+PASS (static): main/interrupts have no old protocol or kernel references
+PASS (static): no PWM start, actuator API, TIM3 setup, remap or GPIOA writes
+PASS (static): first main statement shuts hardware down
+PASS (static): CC1E/CC2E and CEN cleared before GPIO low/mode selection
+PASS (static): shutdown contains no HAL call or wait loop
+PASS (static): fatal handler shuts hardware down before masking IRQs; source has no recovery path
+PASS (static): SysTick only increments HAL tick
+PASS (static): NMI_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): HardFault_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): MemManage_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): BusFault_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): UsageFault_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): SVC_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): PendSV_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): DebugMon_Handler overrides weak startup vector and enters fatal shutdown
+PASS (static): USART2 wrapper removed; startup vector/weak fallback retained
+PASS (static): FLASH_LATENCY_2 exists in repository headers
+PASS (static): GPIO_CRL_CNF6 exists in repository headers
+PASS (static): GPIO_CRL_CNF7 exists in repository headers
+PASS (static): GPIO_CRL_MODE6 exists in repository headers
+PASS (static): GPIO_CRL_MODE6_1 exists in repository headers
+PASS (static): GPIO_CRL_MODE7 exists in repository headers
+PASS (static): GPIO_CRL_MODE7_1 exists in repository headers
+PASS (static): GPIO_PIN_6 exists in repository headers
+PASS (static): GPIO_PIN_7 exists in repository headers
+PASS (static): NVIC_PRIORITYGROUP_4 exists in repository headers
+PASS (static): RCC_APB1ENR_TIM3EN exists in repository headers
+PASS (static): RCC_APB2ENR_IOPCEN exists in repository headers
+PASS (static): RCC_CLOCKTYPE_HCLK exists in repository headers
+PASS (static): RCC_CLOCKTYPE_PCLK1 exists in repository headers
+PASS (static): RCC_CLOCKTYPE_PCLK2 exists in repository headers
+PASS (static): RCC_CLOCKTYPE_SYSCLK exists in repository headers
+PASS (static): RCC_HCLK_DIV1 exists in repository headers
+PASS (static): RCC_HCLK_DIV2 exists in repository headers
+PASS (static): RCC_HSE_ON exists in repository headers
+PASS (static): RCC_HSE_PREDIV_DIV1 exists in repository headers
+PASS (static): RCC_OSCILLATORTYPE_HSE exists in repository headers
+PASS (static): RCC_PLLSOURCE_HSE exists in repository headers
+PASS (static): RCC_PLL_MUL9 exists in repository headers
+PASS (static): RCC_PLL_ON exists in repository headers
+PASS (static): RCC_SYSCLKSOURCE_PLLCLK exists in repository headers
+PASS (static): RCC_SYSCLKSOURCE_STATUS_PLLCLK exists in repository headers
+PASS (static): RCC_SYSCLK_DIV1 exists in repository headers
+PASS (static): TIM_CCER_CC1E exists in repository headers
+PASS (static): TIM_CCER_CC2E exists in repository headers
+PASS (static): TIM_CR1_CEN exists in repository headers
+PASS (static): GPIO mask arithmetic preserves PC0-PC5 and selects PC6/PC7 push-pull 2 MHz (not executed on MCU)
+PASS (static): clock arithmetic HCLK 72 MHz / PCLK1 36 MHz / PCLK2 72 MHz (not measured)
+PASS (static): refresh CMSIS clock before HAL_Init and propagate final tick status
+PASS (static): git diff --check
+SHA256 Projects/RTnode.uvprojx: 0D843C27AB597F7053BCDA55BF91B9241AD8CB05BFD2877AC73766FA3D87060E
+SHA256 Core/Src/main.c: BCFA9D8E388AEA461FBDCBA4EFA8077171D9D953D3E492727A6F8DCF1990DEF1
+SHA256 Core/Src/interrupts.c: 0329F4EBA5DC400B431074A009A2A19645DB84C8F640E565F5B169992DFD3217
+SHA256 Core/Inc/p1a_safety.h: ED3B9DA482561A3B0DDF1E0EBAA9AD11F164E43D673B691B8CD2EB5ACED236A7
+S03 Build/Link: NOT_RUN (user reserves compilation and real Build Log/MAP).
+S05: C1 shutdown source reviewed only; C2 fault latch/re-enable tests NOT_RUN.
+S06/S07: NOT_RUN (C2 remap/preload/CCR scope).
+H01-H10: NOT_RUN (user hardware tests).

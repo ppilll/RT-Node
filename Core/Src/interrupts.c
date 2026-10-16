@@ -1,23 +1,49 @@
 #include "stm32f1xx_hal.h"
+#include "p1a_safety.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-
-#include "protocol_transport.h"
-
-extern void xPortSysTickHandler(void);
-
+/* P1a uses the HAL time base only; no FreeRTOS kernel is linked. */
 void SysTick_Handler(void)
 {
     HAL_IncTick();
-
-    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
-    {
-        xPortSysTickHandler();
-    }
 }
 
-void USART2_IRQHandler(void)
+void NMI_Handler(void)
 {
-    ProtocolTransport_UartIrqHandler();
+    P1a_FatalError();
+}
+
+void HardFault_Handler(void)
+{
+    P1a_FatalError();
+}
+
+void MemManage_Handler(void)
+{
+    P1a_FatalError();
+}
+
+void BusFault_Handler(void)
+{
+    P1a_FatalError();
+}
+
+void UsageFault_Handler(void)
+{
+    P1a_FatalError();
+}
+
+/* These exceptions are unexpected in C1; P1b must review RTOS ownership. */
+void SVC_Handler(void)
+{
+    P1a_FatalError();
+}
+
+void PendSV_Handler(void)
+{
+    P1a_FatalError();
+}
+
+void DebugMon_Handler(void)
+{
+    P1a_FatalError();
 }

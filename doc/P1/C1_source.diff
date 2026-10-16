@@ -1,0 +1,202 @@
+diff --git a/Core/Src/interrupts.c b/Core/Src/interrupts.c
+index 2d78553..df1f0af 100644
+--- a/Core/Src/interrupts.c
++++ b/Core/Src/interrupts.c
+@@ -1,23 +1,49 @@
+ #include "stm32f1xx_hal.h"
++#include "p1a_safety.h"
+ 
+-#include "FreeRTOS.h"
+-#include "task.h"
++/* P1a uses the HAL time base only; no FreeRTOS kernel is linked. */
++void SysTick_Handler(void)
++{
++    HAL_IncTick();
++}
+ 
+-#include "protocol_transport.h"
++void NMI_Handler(void)
++{
++    P1a_FatalError();
++}
+ 
+-extern void xPortSysTickHandler(void);
++void HardFault_Handler(void)
++{
++    P1a_FatalError();
++}
+ 
+-void SysTick_Handler(void)
++void MemManage_Handler(void)
+ {
+-    HAL_IncTick();
++    P1a_FatalError();
++}
+ 
+-    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+-    {
+-        xPortSysTickHandler();
+-    }
++void BusFault_Handler(void)
++{
++    P1a_FatalError();
++}
++
++void UsageFault_Handler(void)
++{
++    P1a_FatalError();
++}
++
++/* These exceptions are unexpected in C1; P1b must review RTOS ownership. */
++void SVC_Handler(void)
++{
++    P1a_FatalError();
++}
++
++void PendSV_Handler(void)
++{
++    P1a_FatalError();
+ }
+ 
+-void USART2_IRQHandler(void)
++void DebugMon_Handler(void)
+ {
+-    ProtocolTransport_UartIrqHandler();
++    P1a_FatalError();
+ }
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+index 7977243..7e67f14 100644
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -1,14 +1,109 @@
+ #include "stm32f1xx_hal.h"
++#include "p1a_safety.h"
+ 
+-#include "FreeRTOS.h"
+-#include "task.h"
++#if HSE_VALUE != 8000000U
++#error "P1a requires the confirmed 8 MHz HSE clock configuration"
++#endif
+ 
++static HAL_StatusTypeDef SystemClock_Config(void);
+ 
++/* C1-only hardware shutdown; no actuator state or fault-clear API. */
++void P1a_ForceSafeOutput(void)
++{
++    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
++    (void)RCC->APB1ENR;
++    TIM3->CCER &= ~(TIM_CCER_CC1E | TIM_CCER_CC2E);
++    TIM3->CR1 &= ~TIM_CR1_CEN;
+ 
+-static void SystemClock_Config(void);
+-static void Error_Handler(void);
++    RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
++    (void)RCC->APB2ENR;
++    /* Preload low before selecting general-purpose push-pull, 2 MHz. */
++    GPIOC->BRR = GPIO_PIN_6 | GPIO_PIN_7;
++    GPIOC->CRL = (GPIOC->CRL & ~(GPIO_CRL_MODE6 | GPIO_CRL_CNF6 |
++                                GPIO_CRL_MODE7 | GPIO_CRL_CNF7)) |
++                 GPIO_CRL_MODE6_1 | GPIO_CRL_MODE7_1;
++    __DSB();
++}
++
++void P1a_FatalError(void)
++{
++    /* Hardware first; no HAL tick, RTOS, diagnostics or recovery needed. */
++    P1a_ForceSafeOutput();
++    __disable_irq();
++    for (;;)
++    {
++        P1a_ForceSafeOutput();
++    }
++}
+ 
+ int main(void)
+ {
++    /* First action after C runtime. Reset-time high impedance is unavoidable. */
++    P1a_ForceSafeOutput();
++
++    /* The CMSIS template's initial value is not the reset HSI frequency. */
++    SystemCoreClockUpdate();
++    if (HAL_Init() != HAL_OK)
++    {
++        P1a_FatalError();
++    }
++    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
++    /* This HAL version ignores HAL_InitTick's result inside HAL_Init. */
++    if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK)
++    {
++        P1a_FatalError();
++    }
++
++    if (SystemClock_Config() != HAL_OK)
++    {
++        P1a_FatalError();
++    }
++
++    P1a_ForceSafeOutput();
++    for (;;)
++    {
++        /* C1 has no scheduler, actuator initialization or enable entry. */
++        __WFI();
++    }
++}
++
++static HAL_StatusTypeDef SystemClock_Config(void)
++{
++    RCC_OscInitTypeDef oscillator = {0};
++    RCC_ClkInitTypeDef clocks = {0};
++
++    /* User-confirmed 8 MHz crystal: HSE / 1 * 9 = 72 MHz. */
++    oscillator.OscillatorType = RCC_OSCILLATORTYPE_HSE;
++    oscillator.HSEState = RCC_HSE_ON;
++    oscillator.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
++    oscillator.PLL.PLLState = RCC_PLL_ON;
++    oscillator.PLL.PLLSource = RCC_PLLSOURCE_HSE;
++    oscillator.PLL.PLLMUL = RCC_PLL_MUL9;
++    if (HAL_RCC_OscConfig(&oscillator) != HAL_OK)
++    {
++        return HAL_ERROR;
++    }
++
++    clocks.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
++                       RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
++    clocks.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
++    clocks.AHBCLKDivider = RCC_SYSCLK_DIV1;
++    clocks.APB1CLKDivider = RCC_HCLK_DIV2;
++    clocks.APB2CLKDivider = RCC_HCLK_DIV1;
++    if (HAL_RCC_ClockConfig(&clocks, FLASH_LATENCY_2) != HAL_OK)
++    {
++        return HAL_ERROR;
++    }
++
++    SystemCoreClockUpdate();
++    if ((__HAL_RCC_GET_SYSCLK_SOURCE() != RCC_SYSCLKSOURCE_STATUS_PLLCLK) ||
++        (SystemCoreClock != 72000000U) ||
++        (HAL_RCC_GetPCLK1Freq() != 36000000U) ||
++        (HAL_RCC_GetPCLK2Freq() != 72000000U))
++    {
++        return HAL_ERROR;
++    }
+ 
++    /* HAL_RCC_ClockConfig also ignores its internal HAL_InitTick result. */
++    return HAL_InitTick(TICK_INT_PRIORITY);
+ }
+diff --git a/Core/Inc/p1a_safety.h b/Core/Inc/p1a_safety.h
+new file mode 100644
+--- /dev/null
++++ b/Core/Inc/p1a_safety.h
+@@ -0,0 +1,13 @@
++#ifndef P1A_SAFETY_H
++#define P1A_SAFETY_H
++
++/* C1 shutdown only: no HAL/RTOS dependency and no software fault latch.
++ * Both functions are implemented in main.c to avoid another source-file entry.
++ * C2 must integrate the actuator fault latch; this is not its public API.
++ */
++void P1a_ForceSafeOutput(void);
++
++/* Hardware shutdown followed by a non-returning loop; recovery needs reset. */
++void P1a_FatalError(void);
++
++#endif /* P1A_SAFETY_H */

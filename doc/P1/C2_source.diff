@@ -1,0 +1,657 @@
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -1,5 +1,7 @@
+ #include "stm32f1xx_hal.h"
+ #include "p1a_safety.h"
++#include "actuator.h"
++#include "../../App/p1a_test/p1a_test.h"
+ 
+ #if HSE_VALUE != 8000000U
+ #error "P1a requires the confirmed 8 MHz HSE clock configuration"
+@@ -7,7 +9,9 @@
+ 
+ static HAL_StatusTypeDef SystemClock_Config(void);
+ 
+-/* C1-only hardware shutdown; no actuator state or fault-clear API. */
++/* Internal cold-start/normal-disable primitive: deliberately does not latch.
++ * Emergency callers must use Actuator_ForceSafeOutput / P1a_FatalError.
++ */
+ void P1a_ForceSafeOutput(void)
+ {
+     RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+@@ -28,11 +32,11 @@
+ void P1a_FatalError(void)
+ {
+     /* Hardware first; no HAL tick, RTOS, diagnostics or recovery needed. */
+-    P1a_ForceSafeOutput();
++    Actuator_ForceSafeOutput();
+     __disable_irq();
+     for (;;)
+     {
+-        P1a_ForceSafeOutput();
++        Actuator_ForceSafeOutput();
+     }
+ }
+ 
+@@ -59,11 +63,18 @@
+         P1a_FatalError();
+     }
+ 
+-    P1a_ForceSafeOutput();
++    if (!Actuator_InitSafe())
++    {
++        P1a_FatalError();
++    }
+     for (;;)
+     {
+-        /* C1 has no scheduler, actuator initialization or enable entry. */
++#if P1A_ACTUATOR_TEST_ENABLE
++        P1aTest_Poll();
++#else
++        /* Default image has no caller of Enable/Apply and no scheduler. */
+         __WFI();
++#endif
+     }
+ }
+ 
+diff --git a/Core/Inc/p1a_safety.h b/Core/Inc/p1a_safety.h
+--- a/Core/Inc/p1a_safety.h
++++ b/Core/Inc/p1a_safety.h
+@@ -1,13 +1,15 @@
+ #ifndef P1A_SAFETY_H
+ #define P1A_SAFETY_H
+ 
+-/* C1 shutdown only: no HAL/RTOS dependency and no software fault latch.
+- * Both functions are implemented in main.c to avoid another source-file entry.
+- * C2 must integrate the actuator fault latch; this is not its public API.
++/* Internal raw hardware shutdown for cold start / normal Disable only.
++ * Implemented in main.c, no HAL/RTOS dependency. This does not latch faults.
++ * Emergency callers MUST use Actuator_ForceSafeOutput, or P1a_FatalError.
+  */
+ void P1a_ForceSafeOutput(void);
+ 
+-/* Hardware shutdown followed by a non-returning loop; recovery needs reset. */
++/* Latching hardware shutdown then non-returning loop; recovery needs reset.
++ * All NMI/fault handlers must use this, NEVER return to normal MMIO writes.
++ */
+ void P1a_FatalError(void);
+ 
+ #endif /* P1A_SAFETY_H */
+diff --git a/App/actuator/include/actuator.h b/App/actuator/include/actuator.h
+new file mode 100644
+--- /dev/null
++++ b/App/actuator/include/actuator.h
+@@ -0,0 +1,118 @@
++#ifndef RT_NODE_ACTUATOR_H
++#define RT_NODE_ACTUATOR_H
++
++#include <stdbool.h>
++#include <stdint.h>
++
++/*
++ * Configuration retained from VisionArm-MCU fixed commit
++ * 92d8f45bc9c7df55f6e2abea4b4abfeb090a3e3d; NOT a new-board measurement.
++ *
++ * Electrical S20F command envelope:
++ *   500..2500 us, 50 Hz.
++ *
++ * Installed software-safe envelope:
++ *   Pan  1000..2000 us, center 1500 us.
++ *   Tilt 1200..1600 us, center 1500 us.
++ */
++#define ACTUATOR_PWM_PERIOD_US             20000U
++#define ACTUATOR_PWM_COUNTER_HZ            1000000U
++#define ACTUATOR_SERVO_ELECTRICAL_MIN_US   500U
++#define ACTUATOR_SERVO_CENTER_US           1500U
++#define ACTUATOR_SERVO_ELECTRICAL_MAX_US   2500U
++
++#define ACTUATOR_PAN_SAFE_MIN_US           1000U
++#define ACTUATOR_PAN_CENTER_US             1500U
++#define ACTUATOR_PAN_SAFE_MAX_US           2000U
++
++#define ACTUATOR_TILT_SAFE_MIN_US          1200U
++#define ACTUATOR_TILT_CENTER_US            1500U
++#define ACTUATOR_TILT_SAFE_MAX_US          1600U
++
++#if (ACTUATOR_PAN_SAFE_MIN_US < ACTUATOR_SERVO_ELECTRICAL_MIN_US) || \
++    (ACTUATOR_PAN_SAFE_MAX_US > ACTUATOR_SERVO_ELECTRICAL_MAX_US)
++#error "Pan software limits exceed servo electrical limits"
++#endif
++
++#if (ACTUATOR_TILT_SAFE_MIN_US < ACTUATOR_SERVO_ELECTRICAL_MIN_US) || \
++    (ACTUATOR_TILT_SAFE_MAX_US > ACTUATOR_SERVO_ELECTRICAL_MAX_US)
++#error "Tilt software limits exceed servo electrical limits"
++#endif
++
++#if (ACTUATOR_PAN_SAFE_MIN_US >= ACTUATOR_PAN_CENTER_US) || \
++    (ACTUATOR_PAN_CENTER_US >= ACTUATOR_PAN_SAFE_MAX_US)
++#error "Invalid Pan calibration ordering"
++#endif
++
++#if (ACTUATOR_TILT_SAFE_MIN_US >= ACTUATOR_TILT_CENTER_US) || \
++    (ACTUATOR_TILT_CENTER_US >= ACTUATOR_TILT_SAFE_MAX_US)
++#error "Invalid Tilt calibration ordering"
++#endif
++
++typedef struct
++{
++    int32_t pan_position_us;
++    int32_t tilt_position_us;
++} ActuatorCommand;
++
++typedef struct
++{
++    int32_t requested_pan_us;
++    int32_t requested_tilt_us;
++    uint16_t applied_pan_us;
++    uint16_t applied_tilt_us;
++    bool pan_saturated;
++    bool tilt_saturated;
++} ActuatorApplyResult;
++
++typedef struct
++{
++    bool initialized;
++    bool enabled;
++    bool fault_latched;
++    uint16_t applied_pan_us;
++    uint16_t applied_tilt_us;
++    uint32_t command_count;
++    uint32_t pan_saturation_count;
++    uint32_t tilt_saturation_count;
++    uint32_t enable_count;
++    uint32_t disable_count;
++    uint32_t fault_count;
++} ActuatorSnapshot;
++
++/* TIM3 full remap: CH1/PC6 Pan, CH2/PC7 Tilt; initialize disabled/LOW. */
++bool Actuator_InitSafe(void);
++
++/* Main context, explicit caller authorization: start at center after one LOW frame.
++ * Init/Enable/Apply misuse or configuration failure shuts down and latches.
++ * Repeated Init while disabled is idempotent; Init/Enable while enabled fails.
++ */
++bool Actuator_Enable(void);
++
++/* Main context, enabled only. Apply independent absolute pulse-width limits.
++ * Wait >= one 20 ms opening frame after Enable; premature Apply faults closed.
++ * On false, result applied values are zero (no accepted request).
++ */
++bool Actuator_Apply(const ActuatorCommand *command,
++                    ActuatorApplyResult *result);
++
++/* Disable PWM, force PC6/PC7 LOW, discard old target; keep fault latch. */
++void Actuator_Disable(void);
++
++/*
++ * Register-level emergency primitive. Safe to call with interrupts disabled
++ * and without a running scheduler or initialized HAL state. Latches a fault;
++ * only MCU reset clears it. NMI/fault handlers MUST enter P1a_FatalError
++ * and never return to an interrupted normal register write.
++ */
++void Actuator_ForceSafeOutput(void);
++
++/* Main-context snapshot; NULL is no-op. Counters wrap naturally.
++ * applied = last preload target (not measured active pulse); normal Disable
++ * sets center. Emergency retains last target for diagnosis with enabled=false.
++ * fault_count = 0 or 1 fault episode since reset.
++ * PRIMASK is preserved; NMI/fault never returns. No peripheral reads here.
++ */
++void Actuator_GetSnapshot(ActuatorSnapshot *snapshot);
++
++#endif /* RT_NODE_ACTUATOR_H */
+diff --git a/App/actuator/src/actuator.c b/App/actuator/src/actuator.c
+new file mode 100644
+--- /dev/null
++++ b/App/actuator/src/actuator.c
+@@ -0,0 +1,309 @@
++/* Selective migration from VisionArm-MCU 92d8f45bc9c7df55f6e2abea4b4abfeb090a3e3d
++ * Visionarm_MCU/App/actuator/src/actuator.c. See doc/P1/C2_handoff.md.
++ * P1a: single main-context owner, no scheduler/interrupt-driven PWM.
++ */
++#include "actuator.h"
++#include <stddef.h>
++#include "stm32f1xx_hal.h"
++#include "p1a_safety.h"
++
++#define PIN_MASK       (GPIO_PIN_6 | GPIO_PIN_7)
++#define PIN_MODE_MASK  0xFF000000UL
++#define PIN_SAFE_MODE  0x22000000UL
++#define PIN_AF_MODE    0xAA000000UL /* AF push-pull, 2 MHz */
++#define CHANNELS       (TIM_CCER_CC1E | TIM_CCER_CC2E)
++#define PWM_CONFIG     (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | \
++                        TIM_CCMR1_OC1PE | TIM_CCMR1_OC2M_1 | \
++                        TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE)
++
++static ActuatorSnapshot s_state;
++static bool s_center_pending;
++/* Only written 0->1, never cleared by Init/Disable. Aligned 32-bit store.
++ * Emergency does hardware work first; no structure copy/counter RMW needed.
++ */
++static volatile uint32_t s_fault_latched;
++
++static uint32_t Lock(void)
++{
++    uint32_t saved = __get_PRIMASK();
++    __disable_irq();
++    __DMB();
++    return saved;
++}
++
++static void Unlock(uint32_t saved)
++{
++    __DMB();
++    __set_PRIMASK(saved);
++}
++
++void Actuator_ForceSafeOutput(void)
++{
++    P1a_ForceSafeOutput();
++    s_fault_latched = 1U;
++    __DMB();
++}
++
++static bool Fail(void)
++{
++    Actuator_ForceSafeOutput();
++    return false;
++}
++
++static bool ClockIsValid(void)
++{
++    /* Reject a changed clock tree; CMSIS/HAL values are software checks only. */
++    return (SystemCoreClock == 72000000U) &&
++           (__HAL_RCC_GET_SYSCLK_SOURCE() == RCC_SYSCLKSOURCE_STATUS_PLLCLK) &&
++           ((RCC->CR & (RCC_CR_HSERDY | RCC_CR_PLLRDY)) ==
++                       (RCC_CR_HSERDY | RCC_CR_PLLRDY)) &&
++           ((RCC->CFGR & (RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL)) ==
++                         (RCC_PLLSOURCE_HSE | RCC_PLL_MUL9)) &&
++           ((RCC->CFGR & RCC_CFGR_HPRE) == RCC_SYSCLK_DIV1) &&
++           ((RCC->CFGR & RCC_CFGR_PPRE1) == RCC_HCLK_DIV2) &&
++           ((RCC->CFGR & RCC_CFGR_PPRE2) == RCC_HCLK_DIV1) &&
++           (HAL_RCC_GetPCLK1Freq() == 36000000U) &&
++           (HAL_RCC_GetPCLK2Freq() == 72000000U);
++}
++
++static bool ConfigIsValid(bool running)
++{
++    uint32_t expected_cr1 = TIM_CR1_ARPE;
++    uint32_t expected_pins = PIN_SAFE_MODE;
++    uint32_t expected_ccer = 0U;
++    if (running)
++    {
++        expected_cr1 |= TIM_CR1_CEN;
++        expected_pins = PIN_AF_MODE;
++        expected_ccer = CHANNELS;
++    }
++    return ClockIsValid() &&
++           ((RCC->APB1ENR & RCC_APB1ENR_TIM3EN) != 0U) &&
++           ((RCC->APB2ENR & (RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPCEN)) ==
++                             (RCC_APB2ENR_AFIOEN | RCC_APB2ENR_IOPCEN)) &&
++           ((AFIO->MAPR & AFIO_MAPR_TIM3_REMAP) == AFIO_MAPR_TIM3_REMAP_FULLREMAP) &&
++           ((GPIOC->CRL & PIN_MODE_MASK) == expected_pins) &&
++           ((GPIOC->ODR & PIN_MASK) == 0U) &&
++           (TIM3->CR1 == expected_cr1) && (TIM3->CR2 == 0U) &&
++           (TIM3->SMCR == 0U) && (TIM3->DIER == 0U) &&
++           (TIM3->CCER == expected_ccer) && (TIM3->CCMR1 == PWM_CONFIG) &&
++           (TIM3->CCMR2 == 0U) && (TIM3->PSC == 71U) &&
++           (TIM3->ARR == ACTUATOR_PWM_PERIOD_US - 1U) &&
++           (TIM3->CCR1 == s_state.applied_pan_us) &&
++           (TIM3->CCR2 == s_state.applied_tilt_us);
++}
++
++bool Actuator_InitSafe(void)
++{
++    uint32_t saved;
++    uint32_t mapr;
++    bool ok;
++    if (__get_IPSR() != 0U)
++    {
++        return Fail();
++    }
++    saved = Lock();
++    if ((s_fault_latched != 0U) || s_state.enabled)
++    {
++        ok = Fail();
++    }
++    else if (s_state.initialized)
++    {
++        ok = ConfigIsValid(false);
++        if (!ok) { (void)Fail(); }
++    }
++    else
++    {
++        P1a_ForceSafeOutput();
++        ok = ClockIsValid();
++        if (ok)
++        {
++            RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
++            (void)RCC->APB2ENR;
++            /* SWJ_CFG readback is undefined. NEVER copy it or use this HAL's
++             * remap macro (which ORs 111). Preserve all other MAPR bits and
++             * explicitly select 000 = full JTAG + SWD. Only P1a writes MAPR.
++             */
++            mapr = AFIO->MAPR & ~(AFIO_MAPR_SWJ_CFG | AFIO_MAPR_TIM3_REMAP);
++            AFIO->MAPR = mapr | AFIO_MAPR_SWJ_CFG_RESET | AFIO_MAPR_TIM3_REMAP_FULLREMAP;
++            __DSB();
++
++            RCC->APB1RSTR |= RCC_APB1RSTR_TIM3RST;
++            (void)RCC->APB1RSTR;
++            RCC->APB1RSTR &= ~RCC_APB1RSTR_TIM3RST;
++            (void)RCC->APB1RSTR;
++            /* Direct register subset avoids HAL MSP callbacks, locks and
++             * per-channel Start calls. No HAL_TIM handle/state is used.
++             */
++            TIM3->CR1 = TIM_CR1_ARPE;
++            TIM3->CR2 = 0U;
++            TIM3->SMCR = 0U;
++            TIM3->DIER = 0U;
++            TIM3->CCER = 0U;
++            TIM3->CCMR1 = PWM_CONFIG;
++            TIM3->CCMR2 = 0U;
++            TIM3->PSC = 71U; /* 72 MHz / (71 + 1) = 1 MHz */
++            TIM3->ARR = ACTUATOR_PWM_PERIOD_US - 1U;
++            TIM3->CCR1 = ACTUATOR_PAN_CENTER_US;
++            TIM3->CCR2 = ACTUATOR_TILT_CENTER_US;
++            TIM3->EGR = TIM_EGR_UG; /* transfer ARR/PSC/CCR, reset CNT/PSC */
++            TIM3->SR = 0U;
++            s_state.applied_pan_us = ACTUATOR_PAN_CENTER_US;
++            s_state.applied_tilt_us = ACTUATOR_TILT_CENTER_US;
++            ok = ConfigIsValid(false);
++        }
++        if (ok) { s_state.initialized = true; }
++        else { (void)Fail(); }
++    }
++    Unlock(saved);
++    return ok;
++}
++
++bool Actuator_Enable(void)
++{
++    uint32_t saved;
++    bool ok;
++    if (__get_IPSR() != 0U) { return Fail(); }
++    saved = Lock();
++    if ((s_fault_latched != 0U) || !s_state.initialized || s_state.enabled ||
++        !ConfigIsValid(false))
++    {
++        ok = Fail();
++    }
++    else
++    {
++        /* Active CCR=0 gives a LOW opening frame. Install center in preload
++         * AFTER UG: first natural overflow starts both complete center pulses.
++         * No high pulse is extended by GP->AF switching or CEN sequencing.
++         */
++        TIM3->CCR1 = 0U;
++        TIM3->CCR2 = 0U;
++        TIM3->EGR = TIM_EGR_UG;
++        TIM3->SR = 0U;
++        TIM3->CCR1 = ACTUATOR_PAN_CENTER_US;
++        TIM3->CCR2 = ACTUATOR_TILT_CENTER_US;
++        s_state.applied_pan_us = ACTUATOR_PAN_CENTER_US;
++        s_state.applied_tilt_us = ACTUATOR_TILT_CENTER_US;
++        TIM3->CCER = CHANNELS;
++        GPIOC->CRL = (GPIOC->CRL & ~PIN_MODE_MASK) | PIN_AF_MODE;
++        __DSB();
++        TIM3->CR1 = TIM_CR1_ARPE | TIM_CR1_CEN;
++        __DSB();
++        ok = ConfigIsValid(true);
++        if (ok)
++        {
++            s_state.enabled = true;
++            s_center_pending = true;
++            s_state.enable_count++;
++        }
++        else { (void)Fail(); }
++    }
++    Unlock(saved);
++    return ok;
++}
++
++static uint16_t ClampPulse(int32_t requested, uint16_t minimum,
++                           uint16_t maximum, bool *clamped)
++{
++    *clamped = true;
++    if (requested < (int32_t)minimum) { return minimum; }
++    if (requested > (int32_t)maximum) { return maximum; }
++    *clamped = false;
++    return (uint16_t)requested;
++}
++
++bool Actuator_Apply(const ActuatorCommand *command, ActuatorApplyResult *result)
++{
++    ActuatorApplyResult local = {0};
++    uint32_t saved;
++    bool ok;
++    if (__get_IPSR() != 0U)
++    {
++        ok = Fail(); /* hardware first, even for a rejected ISR caller */
++        if (result != NULL) { *result = local; }
++        return ok;
++    }
++    saved = Lock();
++    if (command != NULL)
++    {
++        local.requested_pan_us = command->pan_position_us;
++        local.requested_tilt_us = command->tilt_position_us;
++    }
++    if ((command == NULL) || (s_fault_latched != 0U) ||
++        !s_state.initialized || !s_state.enabled || !ConfigIsValid(true) ||
++        (s_center_pending && ((TIM3->SR & TIM_SR_UIF) == 0U)))
++    {
++        ok = Fail();
++    }
++    else
++    {
++        /* UIF proves the first natural update loaded center. Even an immediate
++         * new Apply now transfers only at the following update, preserving it.
++         */
++        s_center_pending = false;
++        local.applied_pan_us = ClampPulse(local.requested_pan_us,
++            ACTUATOR_PAN_SAFE_MIN_US, ACTUATOR_PAN_SAFE_MAX_US, &local.pan_saturated);
++        local.applied_tilt_us = ClampPulse(local.requested_tilt_us,
++            ACTUATOR_TILT_SAFE_MIN_US, ACTUATOR_TILT_SAFE_MAX_US, &local.tilt_saturated);
++        /* UDIS blocks shadow transfers, NOT the counter/compare output.
++         * An overflow inside this bounded window retains BOTH old targets;
++         * both new CCRs transfer on the next overflow. Never UG while running.
++         * PRIMASK bounds this window to these four MMIO operations; NMI/fault
++         * goes to non-returning fatal shutdown, so stale RMW cannot resume.
++         */
++        TIM3->CR1 = TIM_CR1_ARPE | TIM_CR1_CEN | TIM_CR1_UDIS;
++        TIM3->CCR1 = local.applied_pan_us;
++        TIM3->CCR2 = local.applied_tilt_us;
++        TIM3->CR1 = TIM_CR1_ARPE | TIM_CR1_CEN;
++        __DSB();
++        s_state.applied_pan_us = local.applied_pan_us;
++        s_state.applied_tilt_us = local.applied_tilt_us;
++        ok = ConfigIsValid(true);
++        if (ok)
++        {
++            s_state.command_count++;
++            if (local.pan_saturated) { s_state.pan_saturation_count++; }
++            if (local.tilt_saturated) { s_state.tilt_saturation_count++; }
++        }
++        else { (void)Fail(); }
++    }
++    if (!ok)
++    {
++        /* No successfully accepted target on failure. */
++        local.applied_pan_us = 0U;
++        local.applied_tilt_us = 0U;
++    }
++    if (result != NULL) { *result = local; }
++    Unlock(saved);
++    return ok;
++}
++
++void Actuator_Disable(void)
++{
++    uint32_t saved;
++    if (__get_IPSR() != 0U) { (void)Fail(); return; }
++    saved = Lock();
++    P1a_ForceSafeOutput();
++    if (s_state.enabled && (s_fault_latched == 0U)) { s_state.disable_count++; }
++    s_state.enabled = false;
++    s_center_pending = false;
++    s_state.applied_pan_us = ACTUATOR_PAN_CENTER_US;
++    s_state.applied_tilt_us = ACTUATOR_TILT_CENTER_US;
++    /* Discard stale preload as well as the software target; no UG/output. */
++    TIM3->CCR1 = ACTUATOR_PAN_CENTER_US;
++    TIM3->CCR2 = ACTUATOR_TILT_CENTER_US;
++    TIM3->CR1 &= ~TIM_CR1_UDIS;
++    Unlock(saved);
++}
++
++void Actuator_GetSnapshot(ActuatorSnapshot *snapshot)
++{
++    uint32_t saved;
++    if (snapshot == NULL) { return; }
++    saved = Lock();
++    *snapshot = s_state;
++    snapshot->fault_latched = (s_fault_latched != 0U);
++    snapshot->enabled = s_state.enabled && !snapshot->fault_latched;
++    snapshot->fault_count = snapshot->fault_latched ? 1U : 0U;
++    Unlock(saved);
++}
+diff --git a/App/p1a_test/p1a_test.h b/App/p1a_test/p1a_test.h
+new file mode 100644
+--- /dev/null
++++ b/App/p1a_test/p1a_test.h
+@@ -0,0 +1,39 @@
++#ifndef RT_NODE_P1A_TEST_H
++#define RT_NODE_P1A_TEST_H
++
++/* Deliberately OFF. Override only for the supervised H01-H10 test image. */
++#ifndef P1A_ACTUATOR_TEST_ENABLE
++#define P1A_ACTUATOR_TEST_ENABLE 0
++#endif
++#if (P1A_ACTUATOR_TEST_ENABLE != 0) && (P1A_ACTUATOR_TEST_ENABLE != 1)
++#error "P1A_ACTUATOR_TEST_ENABLE must be 0 or 1"
++#endif
++
++#if P1A_ACTUATOR_TEST_ENABLE
++#include "actuator.h"
++
++#define P1A_TEST_ENABLE_KEY 0xC2061500UL
++/* Debugger mailbox: write arguments/key/action first, request_seq LAST.
++ * One command at a time: wait ack_seq==request_seq before changing anything.
++ * No protocol, automatic sequence, delay, sweep or background re-enable.
++ */
++typedef struct
++{
++    uint32_t request_seq;
++    uint32_t action;       /* 1 Disable, 2 Enable, 3 Apply, 4 fault, 5 Init,
++                           * 6 Apply requested near overflow (no busy wait) */
++    uint32_t enable_key;   /* fresh key required for EACH action 2; consumed */
++    int32_t pan_us;
++    int32_t tilt_us;
++    uint32_t ack_seq;
++    uint32_t status;       /* 0 idle, 1 success, 2 refused, 3 bad key/action,
++                           * 4 waiting near overflow (action 6, no ack yet) */
++    uint32_t dispatch_counter; /* sampled before Apply, NOT exact MMIO phase */
++    ActuatorApplyResult result;
++    ActuatorSnapshot snapshot;
++} P1aTestMailbox;
++
++extern volatile P1aTestMailbox g_p1a_test;
++void P1aTest_Poll(void);
++#endif
++#endif
+diff --git a/App/p1a_test/p1a_test.c b/App/p1a_test/p1a_test.c
+new file mode 100644
+--- /dev/null
++++ b/App/p1a_test/p1a_test.c
+@@ -0,0 +1,91 @@
++#include "p1a_test.h"
++
++#if P1A_ACTUATOR_TEST_ENABLE
++#include "stm32f1xx_hal.h"
++
++volatile P1aTestMailbox g_p1a_test;
++static uint32_t s_wait_sequence;
++static uint32_t s_wait_count;
++
++void P1aTest_Poll(void)
++{
++    ActuatorCommand command;
++    ActuatorApplyResult result = {0};
++    ActuatorSnapshot snapshot;
++    uint32_t sequence = g_p1a_test.request_seq;
++    uint32_t action;
++    uint32_t key;
++    bool ok;
++
++    if (sequence != g_p1a_test.ack_seq)
++    {
++        __DMB();
++        action = g_p1a_test.action;
++        key = g_p1a_test.enable_key;
++        command.pan_position_us = g_p1a_test.pan_us;
++        command.tilt_position_us = g_p1a_test.tilt_us;
++        if (action == 6U)
++        {
++            if (sequence != s_wait_sequence)
++            {
++                s_wait_sequence = sequence;
++                s_wait_count = 0U;
++            }
++            /* Poll without blocking interrupts; finite poll budget also
++             * fails closed if TIM3 stalls. No HAL tick timeout dependency.
++             */
++            if (((TIM3->CR1 & TIM_CR1_CEN) != 0U) && (TIM3->CNT < 19980U))
++            {
++                s_wait_count++;
++                if (s_wait_count < 65536U)
++                {
++                    g_p1a_test.status = 4U;
++                    return;
++                }
++                Actuator_ForceSafeOutput();
++                action = 3U; /* Apply below refuses after sticky fault */
++            }
++        }
++        g_p1a_test.enable_key = 0U;
++        ok = false;
++        g_p1a_test.status = 2U;
++        switch (action)
++        {
++        case 1U:
++            Actuator_Disable();
++            ok = true;
++            break;
++        case 2U:
++            if (key == P1A_TEST_ENABLE_KEY) { ok = Actuator_Enable(); }
++            else
++            {
++                Actuator_Disable();
++                g_p1a_test.status = 3U;
++            }
++            break;
++        case 3U:
++        case 6U:
++            g_p1a_test.dispatch_counter = TIM3->CNT;
++            ok = Actuator_Apply(&command, &result);
++            break;
++        case 4U:
++            Actuator_ForceSafeOutput(); /* supervised software fault, returns */
++            ok = true;
++            break;
++        case 5U:
++            ok = Actuator_InitSafe();
++            break;
++        default:
++            Actuator_Disable();
++            g_p1a_test.status = 3U;
++            break;
++        }
++        if (ok) { g_p1a_test.status = 1U; }
++        g_p1a_test.result = result;
++        Actuator_GetSnapshot(&snapshot);
++        g_p1a_test.snapshot = snapshot;
++        __DMB();
++        g_p1a_test.ack_seq = sequence;
++    }
++}
++#endif

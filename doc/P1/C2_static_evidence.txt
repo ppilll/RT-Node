@@ -1,0 +1,44 @@
+C2 checks; 2026-10-16 Asia/Shanghai
+NO compiler/linker/MCU/hardware execution; model assumptions: RM0008 UEV/OC preload.
+PASS (static/model): actuator has no old pin/kernel/protocol dependency
+PASS (static/model): six public actuator APIs
+PASS (static/model): test default OFF
+PASS (static/model): boundary test is finite nonblocking polling and faults closed without Tick
+PASS (static/model): cold-start raw shutdown precedes HAL
+PASS (static/model): main has no direct Enable; test poll behind compile-time switch (manual review)
+PASS (static/model): shutdown hardware order: CCER, CEN, preload GPIO low, GPIO mode
+PASS (static/model): raw shutdown has no HAL/wait
+PASS (static/model): emergency closes hardware before sticky aligned-word latch
+PASS (static/model): no software latch-clear assignment
+PASS (static/model): NMI enters non-returning fatal path
+PASS (static/model): HardFault enters non-returning fatal path
+PASS (static/model): MemManage enters non-returning fatal path
+PASS (static/model): BusFault enters non-returning fatal path
+PASS (static/model): UsageFault enters non-returning fatal path
+PASS (static/model): SVC enters non-returning fatal path
+PASS (static/model): PendSV enters non-returning fatal path
+PASS (static/model): DebugMon enters non-returning fatal path
+PASS (static/model): fatal path latches and never resumes interrupted normal MMIO
+PASS (static/model): normal critical sections preserve PRIMASK
+PASS (static/model): Apply brackets paired preloads with UDIS; no running UG
+PASS (static/model): Apply before first center transfer fails closed
+PASS (static/model): MAPR masks undefined SWJ readback and explicitly writes full debug + full remap
+PASS (static/model): MAPR mask arithmetic: 24 patterns preserve other bits and force SWJ=000
+PASS (static/model): GPIO mask preserves PC0-PC5; safe=0x22, AF=0xAA
+PASS (static/model): UEV model: 32 overflow schedules never transfer a mixed axis pair
+PASS (static/model): PWM model: LOW opening frame then complete dual center pulse
+PASS (static/model): all used register constants found in local headers: []
+PASS (static/model): git diff --check
+PASS (static/model): new and existing source files have no trailing whitespace
+SHA256 Core/Src/main.c: 6a724cf9ed03d89a7982a08aaffa0d39ee790179630c6dbdfdd1ab64c8e3c67b
+SHA256 Core/Inc/p1a_safety.h: a75274000534c3e752751721c54cbeace37e8cedd634a33331b772c82842deb2
+SHA256 Core/Src/interrupts.c: 0329f4eba5dc400b431074a009a2a19645db84c8f640e565f5b169992dfd3217
+SHA256 App/actuator/include/actuator.h: 38f901e214d11d42390c8de048b6ded0b9479cd813652b2dd4a0b52c46ba0bcc
+SHA256 App/actuator/src/actuator.c: a98014e8eacd419108ee868656227943a608340228b2977fc5c7f84b94604a9e
+SHA256 App/p1a_test/p1a_test.h: 6057cebc4a97871867bb39c8d7161eeb6dd622be7362c614bf29b41ed8185c0d
+SHA256 App/p1a_test/p1a_test.c: 81893046a329fbd1aa3f677f829acab57d081f300f445c1b55cb0bb39126bfab
+SHA256 Projects/RTnode.uvprojx: 0d843c27ab597f7053bcda55bf91b9241ad8cb05bfd2877ac73766fa3d87060e
+SHA256 Projects/RTnode.uvoptx: 9226e256502755a8a857b6752989c0823b44299983ab57195c81ca8c99e0c42c
+S03 Build/Link: NOT_RUN (user instruction). H01-H10: NOT_RUN (user hardware).
+PASS (patch validation): git apply --reverse --check doc/P1/C2_source.diff (check only, no application)
+PASS (baseline): reconstructed C1 main/safety header match C1 SHA256; old repository status unchanged at end
