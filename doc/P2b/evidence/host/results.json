@@ -1,0 +1,1169 @@
+[
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP2B_PAN_SIGN=1",
+      "/DP2B_TILT_SIGN=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\local_follow.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\local_test.c",
+      "/Felocal.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\mapping1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control_policy.c\nlocal_follow.c\nlocal_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\mapping1\\local.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\mapping1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U01/U02: real mapping, signs, absolute reference, deadband, clamp/slew, NaN/Inf; explicit sources, TTL, generation, terminal\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP2B_PAN_SIGN=-1",
+      "/DP2B_TILT_SIGN=-1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\local_follow.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\local_test.c",
+      "/Felocal.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\mapping-1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control_policy.c\nlocal_follow.c\nlocal_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\mapping-1\\local.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\mapping-1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U01/U02: real mapping, signs, absolute reference, deadband, clamp/slew, NaN/Inf; explicit sources, TTL, generation, terminal\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\policy_test.c",
+      "/Fepolicy.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control_policy.c\npolicy_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\policy.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: policy authorization, TTL/generation boundaries, wraps, ranges, terminal replay\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\local_follow.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\controller_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\nlocal_follow.c\ncontroller_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=0 scenario=nominal enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0\\controller.exe",
+      "no_key"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=0 scenario=no_key enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0\\controller.exe",
+      "boot_hold"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=0 scenario=boot_hold enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0\\controller.exe",
+      "boot_release_press"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=0 scenario=boot_release_press enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0\\controller.exe",
+      "key0_bounce"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=0 scenario=key0_bounce enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0\\controller.exe",
+      "both_keys"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=0 scenario=both_keys enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_UNLOADED_ACK=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\local_follow.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\controller_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\nlocal_follow.c\ncontroller_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=nominal enables=1 applies=10 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "no_key"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=no_key enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "boot_hold"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=boot_hold enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "boot_release_press"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=boot_release_press enables=1 applies=4 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "key0_bounce"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=key0_bounce enables=1 applies=6 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "both_keys"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=both_keys enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "rollover"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=rollover enables=1 applies=10 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "pre_ready_press"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=pre_ready_press enables=1 applies=4 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "prime_dwt"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=prime_dwt enables=1 applies=9 first_apply_age=60 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "key1_bounce"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=key1_bounce enables=1 applies=10 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "stop_before_arm"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=stop_before_arm enables=0 applies=0 first_apply_age=0 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "failed_before_arm"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=failed_before_arm enables=0 applies=0 first_apply_age=0 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "fresh39"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=fresh39 enables=1 applies=10 first_apply_age=40 fault=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "stale"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=stale enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "future"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=future enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "duplicate"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=duplicate enables=1 applies=2 first_apply_age=40 fault=3\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "failed"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=failed enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "invalid"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=invalid enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "not_ready"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=not_ready enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "unavailable"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=unavailable enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "nan"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=nan enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "inf"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=inf enables=1 applies=2 first_apply_age=40 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "prime_nan"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=prime_nan enables=1 applies=0 first_apply_age=0 fault=2\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "refuse_enable"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=refuse_enable enables=1 applies=0 first_apply_age=0 fault=6\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "refuse_apply"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=refuse_apply enables=1 applies=1 first_apply_age=40 fault=6\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "external"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=external enables=1 applies=2 first_apply_age=40 fault=10\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "deadline"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=deadline enables=1 applies=2 first_apply_age=40 fault=7\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "execution"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=execution enables=1 applies=3 first_apply_age=40 fault=8\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1\\controller.exe",
+      "clock"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\stage1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS U03 real ControlTask stage=1 scenario=clock enables=1 applies=2 first_apply_age=40 fault=9\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=nominal enables=0 applies=0 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0\\controller.exe",
+      "rollover"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=rollover enables=0 applies=0 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0\\controller.exe",
+      "no_counter"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=no_counter enables=0 applies=0 fault=9 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0\\controller.exe",
+      "create_fail"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test0",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: static task creation failure, no output\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=nominal enables=1 applies=1398 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "rollover"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=rollover enables=1 applies=1398 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "no_counter"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=no_counter enables=0 applies=0 fault=9 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "create_fail"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: static task creation failure, no output\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "no_wait"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=no_wait enables=1 applies=199 fault=7 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "external_fault"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=external_fault enables=1 applies=198 fault=10 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "refuse_enable"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=refuse_enable enables=1 applies=0 fault=6 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1\\controller.exe",
+      "refuse_apply"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test1",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=1 scenario=refuse_apply enables=1 applies=1 fault=6 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=2",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test2",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test2\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test2",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=2 scenario=nominal enables=1 applies=198 fault=4 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=3",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test3",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test3\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test3",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=3 scenario=nominal enables=1 applies=198 fault=7 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=4",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test4",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test4\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\test4",
+    "returncode": 0,
+    "expected_success": true,
+    "stdout": "PASS: real controller case=4 scenario=nominal enables=1 applies=199 fault=8 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=3",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(31): fatal error C1189: #error:  \"P2B_OUTPUT_STAGE must be 0..2\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_PAN_SIGN=0",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(35): fatal error C1189: #error:  \"P2b axis signs must be +1 or -1\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_ARM_KEY=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(39): fatal error C1189: #error:  \"Stage0 must not retain P2b output authorization\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(46): fatal error C1189: #error:  \"P2b output requires explicit compile permission\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(50): fatal error C1189: #error:  \"Stage1 requires unloaded acknowledgement only\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_UNLOADED_ACK=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/DP2B_OPERATOR_ACK=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(50): fatal error C1189: #error:  \"Stage1 requires unloaded acknowledgement only\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_UNLOADED_ACK=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(43): fatal error C1189: #error:  \"P2b output and P1 output tests are mutually exclusive\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_UNLOADED_ACK=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/DP1A_AUTOTEST_ENABLE=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\control_config.h(26): fatal error C1189: #error:  \"P1b ControlTask requires both P1a test modes OFF\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_UNLOADED_ACK=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/DP1A_ACTUATOR_TEST_ENABLE=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\control_config.h(26): fatal error C1189: #error:  \"P1b ControlTask requires both P1a test modes OFF\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=2",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(54): fatal error C1189: #error:  \"Stage2 requires reviewed G2 evidence and explicit operator approval\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=2",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/DP2B_G2_EVIDENCE_ACK=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(54): fatal error C1189: #error:  \"Stage2 requires reviewed G2 evidence and explicit operator approval\"\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\control",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\actuator\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/c",
+      "/DP2B_OUTPUT_STAGE=2",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/DP2B_OPERATOR_ACK=1",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "cwd": "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2b\\evidence\\host\\guards",
+    "returncode": 2,
+    "expected_success": false,
+    "stdout": "control_policy.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\control\\p2b_config.h(54): fatal error C1189: #error:  \"Stage2 requires reviewed G2 evidence and explicit operator approval\"\n",
+    "stderr": ""
+  }
+]

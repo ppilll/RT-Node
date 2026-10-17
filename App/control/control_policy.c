@@ -10,12 +10,23 @@ void ControlSession_Close(ControlSession *session, ControlFault fault)
     if (session->fault == CONTROL_FAULT_NONE) { session->fault = fault; }
 }
 
-bool ControlSession_Authorize(ControlSession *session)
+static bool AuthorizeSource(ControlSession *session, ControlSource source)
 {
     if (session->authorization_used || session->terminal) { return false; }
     session->authorization_used = true;
     session->authorized = true;
+    session->expected_source = source;
     return true;
+}
+
+bool ControlSession_Authorize(ControlSession *session)
+{
+    return AuthorizeSource(session, CONTROL_SOURCE_TEST);
+}
+
+bool ControlSession_AuthorizeLocal(ControlSession *session)
+{
+    return AuthorizeSource(session, CONTROL_SOURCE_LOCAL_IMU);
 }
 
 bool ControlSession_Accept(ControlSession *session,
@@ -42,7 +53,9 @@ bool ControlSession_Accept(ControlSession *session,
     /* Consume even a rejected new generation. A later close never rewinds it. */
     session->last_generation = command->generation;
     session->has_generation = true;
-    if ((command->source != CONTROL_SOURCE_TEST) || !command->valid ||
+    if (((session->expected_source != CONTROL_SOURCE_TEST) &&
+         (session->expected_source != CONTROL_SOURCE_LOCAL_IMU)) ||
+        (command->source != session->expected_source) || !command->valid ||
         (command->ttl_ticks == 0U) || (command->ttl_ticks > CONTROL_MAX_TTL_TICKS))
     {
         ControlSession_Close(session, CONTROL_FAULT_COMMAND);

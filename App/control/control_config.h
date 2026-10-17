@@ -48,4 +48,6 @@
 #define CONTROL_EXECUTION_US       2000U
 #define CONTROL_STACK_WORDS        256U
 
+#include "p2b_config.h"
+
 #endif

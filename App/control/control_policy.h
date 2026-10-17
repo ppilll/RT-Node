@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum { CONTROL_SOURCE_NONE = 0, CONTROL_SOURCE_TEST = 1 } ControlSource;
+typedef enum { CONTROL_SOURCE_NONE = 0, CONTROL_SOURCE_TEST = 1,
+               CONTROL_SOURCE_LOCAL_IMU = 2 } ControlSource;
 
 /* Fixed uint32_t ticks: this build requires a 32-bit, 1 kHz TickType_t.
  * Only ControlTask constructs and consumes full local snapshots.
@@ -47,9 +48,11 @@ typedef struct
     bool has_generation;
     uint32_t last_generation;
     ControlFault fault;
+    ControlSource expected_source;
 } ControlSession;
 
 bool ControlSession_Authorize(ControlSession *session);
+bool ControlSession_AuthorizeLocal(ControlSession *session);
 bool ControlSession_Accept(ControlSession *session,
                            const ControlCommandSnapshot *command, uint32_t now);
 void ControlSession_Close(ControlSession *session, ControlFault fault);

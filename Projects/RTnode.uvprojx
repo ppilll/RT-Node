@@ -494,6 +494,11 @@
               <FilePath>..\App\control\control_policy.c</FilePath>
             </File>
             <File>
+              <FileName>local_follow.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\control\local_follow.c</FilePath>
+            </File>
+            <File>
               <FileName>p1b_test.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\App\p1b_test\p1b_test.c</FilePath>

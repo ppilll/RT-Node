@@ -4,6 +4,11 @@
 #include "../actuator/include/actuator.h"
 #include "stm32f1xx_hal.h"
 #include <stddef.h>
+#if P2B_OUTPUT_STAGE > 0
+#include "local_follow.h"
+#include "../imu/include/imu.h"
+#include <float.h>
+#endif
 
 #if (configTICK_RATE_HZ != 1000) || (configUSE_16_BIT_TICKS != 0)
 #error "Control snapshots require 32-bit, 1 kHz RTOS ticks"
@@ -81,7 +86,7 @@ static void SampleStack(void)
     }
 }
 
-#if P1B_AUTOTEST_ENABLE
+#if P1B_AUTOTEST_ENABLE || (P2B_OUTPUT_STAGE > 0)
 static bool Accept(ControlSession *session, const ControlCommandSnapshot *command,
                    TickType_t now)
 {
@@ -94,6 +99,21 @@ static bool Accept(ControlSession *session, const ControlCommandSnapshot *comman
     s_diagnostics.generation_fence = session->last_generation;
     s_diagnostics.accepted_count++;
     return true;
+}
+#endif
+
+#if P2B_OUTPUT_STAGE > 0
+/* Elite V2 candidate only: KEY0 PE4 / KEY1 PE3, pull-up, active low.
+ * No GPIO interrupt, task or trace. Physical board confirmation is a G1 gate.
+ */
+static void InitKeys(void)
+{
+    GPIO_InitTypeDef gpio = {0};
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    gpio.Pin = GPIO_PIN_4 | GPIO_PIN_3;
+    gpio.Mode = GPIO_MODE_INPUT;
+    gpio.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIOE, &gpio);
 }
 #endif
 
@@ -110,6 +130,16 @@ static void ControlTask(void *argument)
     TickType_t enabled_tick = 0U;
     uint32_t enabled_cycle = 0U;
     uint32_t step = 0U;
+    ControlCommandSnapshot command;
+    ActuatorCommand actuator_command;
+    ActuatorApplyResult result;
+#elif P2B_OUTPUT_STAGE > 0
+    TickType_t enabled_tick = 0U;
+    uint32_t enabled_cycle = 0U;
+    uint32_t key0_up = 0U, key0_down = 0U, key1_down = 0U;
+    bool released_ready = false;
+    LocalFollowState follow = {0};
+    ImuAttitudeSnapshot imu;
     ControlCommandSnapshot command;
     ActuatorCommand actuator_command;
     ActuatorApplyResult result;
@@ -130,6 +160,9 @@ static void ControlTask(void *argument)
     s_diagnostics.min_idle_stack_words = configMINIMAL_STACK_SIZE;
 #if P1B_AUTOTEST_ENABLE
     s_diagnostics.mode = CONTROL_PRESTART;
+#elif P2B_OUTPUT_STAGE > 0
+    InitKeys();
+    s_diagnostics.mode = CONTROL_WAIT_ARM;
 #endif
     if (!StartCycleCounter()) { Stop(&session, CONTROL_FAULT_CLOCK); }
     /* Counter initialization is before the first scheduling epoch. */
@@ -224,6 +257,97 @@ static void ControlTask(void *argument)
                     }
                     P1bTest_InjectExecution(step);
                     step++;
+                }
+            }
+        }
+#elif P2B_OUTPUT_STAGE > 0
+        if (!session.terminal)
+        {
+            bool key0 = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_4) == GPIO_PIN_RESET;
+            bool key1 = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3) == GPIO_PIN_RESET;
+            bool available = Imu_GetSnapshot(&imu);
+            bool ready = available && imu.state == IMU_READY && imu.valid;
+            uint32_t sample_now = (uint32_t)xTaskGetTickCount();
+            ready = ready && ((uint32_t)(sample_now - imu.sample_tick) < P2B_SAMPLE_TTL_TICKS);
+            ready = ready && (imu.roll_deg >= -FLT_MAX) && (imu.roll_deg <= FLT_MAX) &&
+                            (imu.pitch_deg >= -FLT_MAX) && (imu.pitch_deg <= FLT_MAX);
+            if (key1) { if (key1_down < 2U) { key1_down++; } }
+            else { key1_down = 0U; }
+
+            /* Input failure has priority over a coincident normal stop. */
+            if ((available && imu.state == IMU_FAILED) || (session.authorized && !ready))
+            { Stop(&session, CONTROL_FAULT_COMMAND); }
+            else if (key1_down >= 2U) { Stop(&session, CONTROL_FAULT_NONE); }
+            else if (!session.authorized)
+            {
+                if (!ready)
+                { key0_up = 0U; key0_down = 0U; released_ready = false; }
+                else
+                {
+                    if (!key0)
+                    {
+                        key0_down = 0U;
+                        if (key0_up < 2U) { key0_up++; }
+                        if (key0_up >= 2U) { released_ready = true; }
+                    }
+                    else
+                    {
+                        key0_up = 0U;
+                        if (key0_down < 2U) { key0_down++; }
+                    }
+                    if (key0 && key0_down >= 2U && released_ready && !key1)
+                    {
+                        if (!LocalFollow_Start(&follow, imu.roll_deg, imu.pitch_deg))
+                        { Stop(&session, CONTROL_FAULT_COMMAND); }
+                        else if (!ControlSession_AuthorizeLocal(&session))
+                        { Stop(&session, CONTROL_FAULT_MODE); }
+                        else
+                        {
+                            command.source = CONTROL_SOURCE_LOCAL_IMU;
+                            command.generation = imu.generation;
+                            command.issued_tick = imu.sample_tick;
+                            command.ttl_ticks = P2B_SAMPLE_TTL_TICKS;
+                            command.valid = true;
+                            command.pan_us = P2B_CENTER_US;
+                            command.tilt_us = P2B_CENTER_US;
+                            if (Accept(&session, &command, xTaskGetTickCount()))
+                            {
+                                if (!Actuator_Enable()) { Stop(&session, CONTROL_FAULT_DRIVER); }
+                                else
+                                {
+                                    enabled_tick = xTaskGetTickCount();
+                                    enabled_cycle = DWT->CYCCNT;
+                                    s_diagnostics.mode = CONTROL_PRIMING;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                bool primed = ((TickType_t)(sample_now - enabled_tick) >= CONTROL_PRIMING_TICKS) &&
+                    ((uint32_t)(DWT->CYCCNT - enabled_cycle) >= CONTROL_PRIMING_TICKS * CYCLES_PER_TICK);
+                command.source = CONTROL_SOURCE_LOCAL_IMU;
+                command.generation = imu.generation;
+                command.issued_tick = imu.sample_tick;
+                command.ttl_ticks = P2B_SAMPLE_TTL_TICKS;
+                command.valid = true;
+                command.pan_us = P2B_CENTER_US;
+                command.tilt_us = P2B_CENTER_US;
+                /* Validate finite angles even during priming; do not advance
+                 * the slew state before an actual output update. */
+                if (primed && !LocalFollow_Target(&follow, imu.roll_deg, imu.pitch_deg,
+                                                  &command.pan_us, &command.tilt_us))
+                { Stop(&session, CONTROL_FAULT_COMMAND); }
+                else if (Accept(&session, &command, xTaskGetTickCount()) && primed)
+                {
+                    s_diagnostics.mode = CONTROL_LOCAL_FOLLOW;
+                    actuator_command.pan_position_us = command.pan_us;
+                    actuator_command.tilt_position_us = command.tilt_us;
+                    if (!Actuator_Apply(&actuator_command, &result))
+                    { Stop(&session, CONTROL_FAULT_DRIVER); }
+                    else { s_diagnostics.applied_count++; }
                 }
             }
         }
