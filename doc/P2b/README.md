@@ -4,6 +4,8 @@
 - 审查仓库：<https://github.com/ppilll/RT-Node>；编制时 main HEAD：`d11fb8b1de2da1a6c18e55970176979b42b36ce7`（P2A）。**开工前必须重新核实 HEAD、工作树和 AGENTS.md。**
 - 本包最初是设计/执行说明；本轮已完成最小源码、Stage0/Stage1真实ARMCC5 Rebuild及生产C HOST验证，详见 [P2b_HANDOFF.md](P2b_HANDOFF.md)。硬件仍NOT_RUN、实物KEY未核实、G2未批准，状态PARTIAL；不得将模板或HOST PASS当现场实测。
 
+- 后续更新：操作者已报告Stage1通过、确认G2全部前提并批准Stage2；Stage2真实Rebuild通过。最新镜像/hash和证据归属见[STAGE2_BUILD.md](STAGE2_BUILD.md)；Codex未烧录，Stage2带载H04仍NOT_RUN，不进入P3。
+
 ## 先看这个状态说明
 
 用户提供截图中可读到约 9.8015 ms（102.03 Hz）事务重复间隔、约 238.9 µs 片选窗口，能支持 H02 的 **采集时序部分证据**；截图没有可验证的 `WHO_AM_I=0x12` 字节解码、14 字节完整内容、传感器缺失处理和 PC6/PC7 无 PWM 证据。P2a 的历史 `P2a_HANDOFF.md` 仍标注 H01~H04 为 NOT_RUN；除非现场证据补齐，不得改写成 P2a ACCEPTED。

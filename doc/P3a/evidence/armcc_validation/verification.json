@@ -1,0 +1,35 @@
+{
+  "Head": "59e4a0b0ebf738a8221f719703948e798c6d7d47",
+  "UnchangedModules": [
+    {
+      "File": "App/can/can_app.h",
+      "UnchangedSincePreviousP3a": true
+    },
+    {
+      "File": "App/can/can_app.c",
+      "UnchangedSincePreviousP3a": true
+    },
+    {
+      "File": "Core/Src/main.c",
+      "UnchangedSincePreviousP3a": true
+    },
+    {
+      "File": "Projects/RTnode.uvprojx",
+      "UnchangedSincePreviousP3a": true
+    }
+  ],
+  "ProtectedSourceChanges": [],
+  "DefaultProjectDefines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER",
+  "HALCanCount": 1,
+  "QueueCount": 1,
+  "MapRemovesEnable": true,
+  "MapRemovesApply": true,
+  "HexChecksumAllValid": true,
+  "HexHasEOF": true,
+  "HexDataBytes": 20384,
+  "HexFirstAddress": "0x08000000",
+  "HexEndExclusive": "0x08004FA0",
+  "HexSHA256": "816CD1BC469F73E3F2864583FAD0AAF50E48ABB3432251ABD7AA8E576CB631AD",
+  "RebuildScriptParseErrors": [],
+  "Hardware": "NOT_TESTED"
+}

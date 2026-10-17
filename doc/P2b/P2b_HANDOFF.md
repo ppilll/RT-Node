@@ -1,5 +1,7 @@
 # P2b交接 — IMPLEMENTED / HARDWARE NOT_RUN（PARTIAL）
 
+以下为初次软件交接；最新Stage2构建及操作者确认见文末更新和[STAGE2_BUILD.md](STAGE2_BUILD.md)，不覆盖初次NOT_RUN记录。
+
 2026-10-17，Codex单会话，仅当前仓库。**P2b ACCEPTED=NO；G2未批准；P3=NO。**
 
 ## 1. 身份与修改
@@ -64,3 +66,11 @@ HOST首次Apply名义40ticks；DWT故意少1ms的case在40ticks仍不Apply，60t
 ## 5. 后续门禁
 
 G0软件通过；G1现场前置未完成（实物KEY、P2a关键证据、无负载授权/接线及波形尚缺）；G2未批准。P2a H01/H02/H03/H04本轮无新增证据，保留历史NOT_RUN/入口NOT_VERIFIED，不改旧交接。操作者按[HARDWARE_TEST_GUIDE.md](HARDWARE_TEST_GUIDE.md)补齐记录后再评审，不能直接接舵机。复现命令见该指南；不自动进入P3。
+
+## 6. Stage2后续更新（2026-10-17）
+
+当前HEAD为`59e4a0b0ebf738a8221f719703948e798c6d7d47`（P2b），本轮进入时工作区干净。操作者报告“Stage1测试通过”，要求编译Stage2，并对G2全部前提回答“这些G2条件均已确认通过”；按操作者确认记录G1/G2通过及Stage2编译批准，未冒充Codex独立现场验证。
+
+已扩展rebuild.ps1独立Stage2入口，保留G2/Operator显式开关；默认工程、全部生产C/H及保护不变。真实ARMCC5 Rebuild **PASS，0 errors / 0 warnings**，Flash16656/RAM5912 bytes。HEX为`evidence/armcc/stage2/RTnode.hex`，SHA256=`711e57eb71ddc83470f5a62cd5a0cdb35872f23a0a211afcbf537b7b162eaff1`。与Stage1 HEX逐字节相同，原因是两个阶段运行控制相同，只区分编译许可/使用前提；本次独立完整日志、宏和产物均已归档。详见[STAGE2_BUILD.md](STAGE2_BUILD.md)。
+
+未烧录；Stage2机械带载H04仍NOT_RUN，实际WCET/栈余量NOT_MEASURED；P2b仍PARTIAL、P3=NO。历史P2a/P2b硬件NOT_RUN条目不改写成Codex实测PASS。

@@ -1,0 +1,15 @@
+{
+  "StartedUtc": "2026-10-17T08:09:22.3146346+00:00",
+  "EndedUtc": "2026-10-17T08:09:33.4813106+00:00",
+  "ExitCode": 0,
+  "BuildPass": true,
+  "Defines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER,P2B_OUTPUT_STAGE=0",
+  "Timing": "USER_APPROVED_FOR_T1_NOT_HARDWARE_VERIFIED",
+  "TimingSource": "App/can/can_timing.h",
+  "SourceHead": "59e4a0b0ebf738a8221f719703948e798c6d7d47",
+  "T1": "NOT_TESTED",
+  "Download": "NOT_RUN",
+  "Hex": "P3a_CAN500k_STAGE0_T1.hex",
+  "HexSHA256": "816CD1BC469F73E3F2864583FAD0AAF50E48ABB3432251ABD7AA8E576CB631AD",
+  "Note": "Flashable Stage0 T1 validation image. Default project/existing outputs restored; no download performed."
+}

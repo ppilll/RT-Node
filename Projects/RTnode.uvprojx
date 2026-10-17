@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3;..\App\imu\include;..\Driver\imu</IncludePath>
+              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3;..\App\imu\include;..\Driver\imu;..\App\can</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -464,6 +464,11 @@
               <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_spi.c</FilePath>
             </File>
             <File>
+              <FileName>stm32f1xx_hal_can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_can.c</FilePath>
+            </File>
+            <File>
               <FileName>stm32f1xx_hal_dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_dma.c</FilePath>
@@ -519,9 +524,24 @@
               <FilePath>..\Middlewares\FreeRTOS\list.c</FilePath>
             </File>
             <File>
+              <FileName>queue.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\FreeRTOS\queue.c</FilePath>
+            </File>
+            <File>
               <FileName>port.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3\port.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>CAN</GroupName>
+          <Files>
+            <File>
+              <FileName>can_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\can\can_app.c</FilePath>
             </File>
           </Files>
         </Group>

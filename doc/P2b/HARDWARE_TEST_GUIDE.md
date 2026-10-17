@@ -2,7 +2,7 @@
 
 **现阶段先不带舵机**。仅在 P2a关键前置证据完成、Stage1无负载测试通过之后，才可研究 Stage2 带载。没有 SWD/J-Link/示波器/UART已验证应用日志。
 
-本轮软件/Stage0与Stage1 Rebuild已完成，**未烧录，H01~H04全部NOT_RUN，实物KEY电平/接线NOT_VERIFIED，G2未批准，Stage2未构建**。Stage1 HEX仅完成构建，不表示G1烧录门禁已通过；默认工程仍Stage0。
+初次软件交付时Stage0/Stage1 Rebuild已完成、硬件NOT_RUN。后续操作者报告Stage1通过，并明确确认G2全部条件通过、授权编译Stage2；**Stage2已真实Rebuild通过，Codex未烧录，Stage2带载H04仍NOT_RUN**。操作者报告不冒充Codex独立硬件量测；默认工程仍Stage0。最新镜像与hash见[Stage2交付记录](STAGE2_BUILD.md)。
 
 ## 1. 准备
 
@@ -45,4 +45,16 @@ python doc/P2b/run_host_tests.py
 python doc/P2b/check_static.py
 ```
 
-Rebuild脚本恢复工程默认Stage0及原已有输出，交付HEX只在evidence目录。Stage1临时追加`P2B_OUTPUT_STAGE=1,P2B_UNLOADED_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL`，P1A/P1B仍0。Stage2要求独立`P2B_OUTPUT_STAGE=2,P2B_G2_EVIDENCE_ACK=1,P2B_OPERATOR_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL`且UNLOADED_ACK=0；本轮没有G2批准，不构建。编译宏不替代证据或手动KEY0。
+Rebuild脚本恢复工程默认Stage0及原已有输出，交付HEX只在evidence目录。Stage1临时追加`P2B_OUTPUT_STAGE=1,P2B_UNLOADED_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL`，P1A/P1B仍0。Stage2要求独立`P2B_OUTPUT_STAGE=2,P2B_G2_EVIDENCE_ACK=1,P2B_OPERATOR_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL`且UNLOADED_ACK=0；本轮已按操作者确认构建。编译宏不替代证据或手动KEY0。
+
+## 7. Stage2受限带载验证
+
+Stage2使用与Stage1相同的控制算法和运动范围，区别是独立编译许可用于真实舵机验证。目标是确认中位附近跟随的机械方向、运动平顺性、活动空间及KEY1停止；不是扩大范围或进入P3。仍保持1455..1545µs、每20ticks最多变化2µs、KEY0一次授权、KEY1停机后本次启动不能重新授权、输入/驱动失效锁存。
+
+G2证据已评审通过且操作者明确批准后，使用独立入口：
+
+```powershell
+./doc/P2b/rebuild.ps1 -Stage 2 -G2EvidenceAck -OperatorAck
+```
+
+先核对`evidence/armcc/stage2/RTnode.hex`的hash。首次接入真实舵机时保持机械可活动、独立供电/共地、有人监护且能直接断舵机电源；复位后不按KEY0应无动作，IMU静止校准后才新按KEY0，先试单轴小幅跟随，再按KEY1确认停机。现场H04结果和捕获须另行保存，构建成功不等于机械测试通过。上述开关仅声明已经完成的G2评审与操作者批准，不能代替它们。

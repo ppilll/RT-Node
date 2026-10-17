@@ -1,8 +1,17 @@
 param(
-    [ValidateSet(0,1)][int]$Stage = 0,
+    [ValidateSet(0,1,2)][int]$Stage = 0,
+    [switch]$G2EvidenceAck,
+    [switch]$OperatorAck,
     [string]$Uv4 = 'D:\MKD5.36\UV4\UV4.exe'
 )
 $ErrorActionPreference = 'Stop'
+if ($Stage -eq 2) {
+    if (!$G2EvidenceAck -or !$OperatorAck) {
+        throw 'Stage2 requires reviewed G2 evidence and explicit operator approval (-G2EvidenceAck -OperatorAck).'
+    }
+} elseif ($G2EvidenceAck -or $OperatorAck) {
+    throw 'G2/operator acknowledgements belong only to Stage2.'
+}
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
 $projectDir = Join-Path $repo 'Projects'
 $projectPath = Join-Path $projectDir 'RTnode.uvprojx'
@@ -16,6 +25,8 @@ if ($defines -notmatch 'P1B_AUTOTEST_ENABLE=0' -or $defines -match 'P2B_|P1B_TES
     $defines -match 'P1A_(AUTOTEST|ACTUATOR_TEST)_ENABLE=1') { throw 'Expected default Stage0 project.' }
 if ($Stage -eq 1) {
     $buildDefines = $defines + ',P2B_OUTPUT_STAGE=1,P2B_UNLOADED_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL'
+} elseif ($Stage -eq 2) {
+    $buildDefines = $defines + ',P2B_OUTPUT_STAGE=2,P2B_G2_EVIDENCE_ACK=1,P2B_OPERATOR_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL'
 } else { $buildDefines = $defines }
 $saved = @{}
 Get-ChildItem -LiteralPath $projectDir -Recurse -File | ForEach-Object {
@@ -35,7 +46,11 @@ try {
     [pscustomobject]@{Started=$started.ToString('o'); Ended=(Get-Date).ToString('o');
         ExitCode=$process.ExitCode; Defines=$buildDefines; Stage=$Stage; Project='Projects/RTnode.uvprojx';
         Target='Target 1'; Action='Keil Rebuild only; no download'; OutputsRestored=$true;
-        PhysicalKeys='NOT_VERIFIED'; G1Hardware='NOT_RUN'; G2='NOT_APPROVED'} |
+        PhysicalKeys='NOT_INDEPENDENTLY_VERIFIED';
+        G1Hardware=$(if ($Stage -eq 2) { 'USER_REPORTED_PASS' } else { 'NOT_REPORTED_BY_THIS_BUILD' });
+        G2=$(if ($Stage -eq 2) { 'OPERATOR_ACKNOWLEDGED_PASS' } else { 'NOT_APPROVED_BY_THIS_BUILD' });
+        G2EvidenceAck=[bool]$G2EvidenceAck; OperatorAck=[bool]$OperatorAck;
+        HardwareRunByCodex='NOT_RUN'; SourceHead=(git -C $repo rev-parse HEAD)} |
         ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $destination 'build.json')
     if ($process.ExitCode -ne 0 -or $log -notmatch '0 Error\(s\), 0 Warning\(s\)') {
         throw 'ARMCC Rebuild failed/warned; see rebuild.log'

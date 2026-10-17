@@ -1,0 +1,20 @@
+{
+  "Head": "59e4a0b0ebf738a8221f719703948e798c6d7d47",
+  "DesignBaselineMatch": true,
+  "ProtectedSourceChanges": [],
+  "HALCanFileCount": 1,
+  "HALCanPaths": [
+    "..\\Driver\\STM32F1xx_HAL_Driver\\Src\\stm32f1xx_hal_can.c"
+  ],
+  "QueueFileCount": 1,
+  "CanAppFileCount": 1,
+  "DefaultProjectDefines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER",
+  "CanHasActuatorOrSessionCall": false,
+  "MapRemovesEnable": true,
+  "MapRemovesApply": true,
+  "MapStrongRxVector": true,
+  "MapStrongSceVector": true,
+  "BuildScriptParseErrors": [],
+  "Hardware": "NOT_TESTED",
+  "SourceReview": "See P3a_HANDOFF.md for protocol/ISR manual review; these checks are not runtime tests"
+}

@@ -1,0 +1,18 @@
+{
+  "Started": "2026-10-17T14:56:05.1267459+08:00",
+  "Ended": "2026-10-17T14:56:13.0714028+08:00",
+  "ExitCode": 0,
+  "Defines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER,P2B_OUTPUT_STAGE=2,P2B_G2_EVIDENCE_ACK=1,P2B_OPERATOR_ACK=1,P2B_OUTPUT_ARM_KEY=0xB2201500UL",
+  "Stage": 2,
+  "Project": "Projects/RTnode.uvprojx",
+  "Target": "Target 1",
+  "Action": "Keil Rebuild only; no download",
+  "OutputsRestored": true,
+  "PhysicalKeys": "NOT_INDEPENDENTLY_VERIFIED",
+  "G1Hardware": "USER_REPORTED_PASS",
+  "G2": "OPERATOR_ACKNOWLEDGED_PASS",
+  "G2EvidenceAck": true,
+  "OperatorAck": true,
+  "HardwareRunByCodex": "NOT_RUN",
+  "SourceHead": "59e4a0b0ebf738a8221f719703948e798c6d7d47"
+}
