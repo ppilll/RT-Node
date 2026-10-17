@@ -1,0 +1,202 @@
+[
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\Driver\\imu",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\src\\imu_fusion.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\Driver\\imu\\icm20602_data.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\tests\\fusion_test.c",
+      "/Fefusion.exe"
+    ],
+    "returncode": 0,
+    "stdout": "imu_fusion.c\nicm20602_data.c\nfusion_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\fusion.exe"
+    ],
+    "returncode": 0,
+    "stdout": "U01 PASS: real 14-byte decode, signed endpoints, 16384/g and 131/dps\nU02 target=(0.0,0.0), actual=(0.000000,0.000000) deg\nU02 target=(15.0,0.0), actual=(14.960565,0.000000) deg\nU02 target=(-15.0,0.0), actual=(-14.960565,0.000000) deg\nU02 target=(0.0,15.0), actual=(0.000000,14.960565) deg\nU02 target=(0.0,-15.0), actual=(0.000000,-14.960565) deg\nU02 PASS: level and +/-15deg roll/pitch, 3s convergence <=2deg\nU03 PASS: 60s biased level + 7s trajectory, 5/10/15ms; max roll error 0.147076 deg\nU04 math PASS: zero/long/NaN dt, NaN/Inf/zero-g, motion calibration reset, unchanged angles\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\Driver\\imu",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\src\\imu_fusion.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\Driver\\imu\\icm20602_data.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\Driver\\imu\\icm20602.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\src\\imu.c",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\tests\\task_driver_test.c",
+      "/Fetask_driver.exe"
+    ],
+    "returncode": 0,
+    "stdout": "imu_fusion.c\nicm20602_data.c\nicm20602.c\nimu.c\ntask_driver_test.c\n姝ｅ湪鐢熸垚浠ｇ爜...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "nominal"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS nominal           calls=145 bursts=119 delays=122 CS=HIGH state=3 valid=1\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "rollover"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS rollover          calls=145 bursts=119 delays=122 CS=HIGH state=3 valid=1\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "late_wake"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS late_wake         calls=144 bursts=118 delays=122 CS=HIGH state=3 valid=1\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "create_fail"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS create_fail       calls=0 bursts=0 delays=0 CS=HIGH state=-1 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "id_mismatch"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS id_mismatch       calls=2 bursts=0 delays=5 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "reset_stuck"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS reset_stuck       calls=12 bursts=0 delays=14 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "config_mismatch"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS config_mismatch   calls=21 bursts=0 delays=6 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "init_io"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS init_io           calls=1 bursts=0 delays=4 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "partial_frame"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS partial_frame     calls=28 bursts=2 delays=3 CS=HIGH state=-1 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "burst_timeout"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS burst_timeout     calls=129 bursts=103 delays=108 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "motion_timeout"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS motion_timeout    calls=327 bursts=301 delays=306 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "invalid_accel"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS invalid_accel     calls=327 bursts=301 delays=306 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "zero_dt"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS zero_dt           calls=127 bursts=101 delays=106 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\evidence\\host\\task_driver.exe",
+      "long_dt"
+    ],
+    "returncode": 0,
+    "stdout": "U04 PASS long_dt           calls=127 bursts=101 delays=106 CS=HIGH state=4 valid=0\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\doc\\P2a\\tests\\stubs",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\include",
+      "/IF:\\嵌入式Linux学习资料\\RT-Node\\Driver\\imu",
+      "/c",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "F:\\嵌入式Linux学习资料\\RT-Node\\App\\imu\\src\\imu.c"
+    ],
+    "returncode": 2,
+    "stdout": "imu.c\nF:\\宓屽叆寮廘inux瀛︿範璧勬枡\\RT-Node\\App\\imu\\src\\imu.c(11): fatal error C1189: #error:  \"P2a requires all actuator output test modes OFF\"\n",
+    "stderr": ""
+  }
+]

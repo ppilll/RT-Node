@@ -1,0 +1,10 @@
+{
+  "Started": "2026-10-17T11:32:01.4297103+08:00",
+  "Ended": "2026-10-17T11:32:07.3631092+08:00",
+  "ExitCode": 0,
+  "Defines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER",
+  "Project": "Projects/RTnode.uvprojx",
+  "Target": "Target 1",
+  "Action": "Rebuild; no download",
+  "OutputsRestored": true
+}

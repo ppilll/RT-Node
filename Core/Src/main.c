@@ -5,6 +5,7 @@
 #include "task.h"
 #include "../../App/control/control.h"
 #include "../../App/control/control_config.h"
+#include "imu.h"
 
 /* P1b test authorization and P1a exclusion live in control_config.h. */
 #if configTICK_RATE_HZ != 1000
@@ -85,6 +86,10 @@ int main(void)
         P1a_FatalError();
     }
     if (!Control_Init())
+    {
+        P1a_FatalError();
+    }
+    if (!Imu_Init())
     {
         P1a_FatalError();
     }
