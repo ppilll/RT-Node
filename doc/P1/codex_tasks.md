@@ -15,7 +15,7 @@
 
 **C1 可直接复制启动提示词：**
 
-> 你是 RT-Node F103 P1a 的 Codex C1。先阅读仓库根目录适用的 AGENTS.md（若存在）及 `P01a_actuator_safety_codex_package/` 中的 README.md、requirements.md、design.md、interfaces.md、implementation_plan.md、test_plan.md；仅执行 C1。用户本地 `Projects/RTnode.uvprojx` 已存在且确认为正确单一 Keil 工程，先使用它，不另建工程，不把其未上传 GitHub 当作错误。先检查实际 HEAD 与工作区，再最小化完成安全启动和旧依赖清理；有构建条件则使用 Keil ARMCC5 编译，记录真实日志/MAP。不得执行 C2、修改旧仓库、推送或覆盖用户文件。遇到硬件/冻结约束冲突立即暂停。结束时提交 diff、证据、未运行项和 C2 前置判断。
+> 你是 RT-Node F103 P1a 的 Codex C1。先阅读仓库根目录适用的 AGENTS.md（若存在）及 `doc/P1/` 中的 README.md、requirements.md、design.md、interfaces.md、implementation_plan.md、test_plan.md；仅执行 C1。用户本地 `Projects/RTnode.uvprojx` 已存在且确认为正确单一 Keil 工程，先使用它，不另建工程，不把其未上传 GitHub 当作错误。先检查实际 HEAD 与工作区，再最小化完成安全启动和旧依赖清理；不要使用 Keil ARMCC5 编译，我会负责编译测试，记录真实日志/MAP。不得执行 C2、修改旧仓库、推送或覆盖用户文件。遇到硬件/冻结约束冲突立即暂停。结束时提交 diff、证据、未运行项和 C2 前置判断。
 
 ## C2：TIM3 执行器安全迁移
 
@@ -28,7 +28,7 @@
 
 **C2 可直接复制启动提示词：**
 
-> 你是 RT-Node F103 P1a 的 Codex C2。先阅读根目录适用的 AGENTS.md（若存在）、`docs/P1` 的全部相关文档、C1 实际交付，以及旧 VisionArm-MCU 在固定参考 commit 下的 `App/actuator` 文件。只执行 `implementation_plan.md` 的 C2：保留已批准的单一 Keil 工程，局部迁移 actuator 六个 API 至 TIM3_CH1/PC6 与 CH2/PC7，全重映射、默认输出禁止、紧急关断、故障锁存、双轴安全限幅和恢复中位；测试入口默认关闭。审查 AFIO_MAPR 的 SWJ_CFG 写入风险及全部失败路径。编译并保存真实日志（若环境具备），整理给用户的 H01–H10 实测指导。不要修改旧仓库、不实现 P1b、不推送、不声称已经进行硬件测量。冲突先暂停报告。
+> 你是 RT-Node F103 P1a 的 Codex C2。先阅读根目录适用的 AGENTS.md（若存在）、`P01a_actuator_safety_codex_package/` 的全部相关文档、C1 实际交付，以及旧 VisionArm-MCU 在固定参考 commit 下的 `App/actuator` 文件。只执行 `implementation_plan.md` 的 C2：保留已批准的单一 Keil 工程，局部迁移 actuator 六个 API 至 TIM3_CH1/PC6 与 CH2/PC7，全重映射、默认输出禁止、紧急关断、故障锁存、双轴安全限幅和恢复中位；测试入口默认关闭。审查 AFIO_MAPR 的 SWJ_CFG 写入风险及全部失败路径。编译并保存真实日志（若环境具备），整理给用户的 H01–H10 实测指导。不要修改旧仓库、不实现 P1b、不推送、不声称已经进行硬件测量。冲突先暂停报告。
 
 ## 最终集成/实机 Gate
 

@@ -1,0 +1,1106 @@
+diff --git a/App/p1a_test/p1a_test.c b/App/p1a_test/p1a_test.c
+index aa9303b..4df1ec5 100644
+--- a/App/p1a_test/p1a_test.c
++++ b/App/p1a_test/p1a_test.c
+@@ -1,5 +1,225 @@
+ #include "p1a_test.h"
+ 
++#if P1A_AUTOTEST_ENABLE
++#include "actuator.h"
++#include "stm32f1xx_hal.h"
++#include "p1a_safety.h"
++
++#define AUTO_CYCLES_PER_MS 72000UL
++#define AUTO_POLL_BUDGET   65536UL
++#define AUTO_HOLD_MS       3040U /* >=3000 ms active, allowing preload latency */
++
++static void AutoRequire(bool ok)
++{
++    if (!ok) { P1a_FatalError(); }
++}
++
++static bool AutoConditions(bool enabled, bool fault)
++{
++    ActuatorSnapshot state;
++    Actuator_GetSnapshot(&state);
++    return (__get_IPSR() == 0U) && (__get_PRIMASK() == 0U) &&
++        (SystemCoreClock == 72000000U) &&
++        (__HAL_RCC_GET_SYSCLK_SOURCE() == RCC_SYSCLKSOURCE_STATUS_PLLCLK) &&
++        ((RCC->CR & (RCC_CR_HSERDY | RCC_CR_PLLRDY)) ==
++                    (RCC_CR_HSERDY | RCC_CR_PLLRDY)) &&
++        ((RCC->CFGR & (RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL |
++                      RCC_CFGR_HPRE | RCC_CFGR_PPRE1 | RCC_CFGR_PPRE2)) ==
++                     (RCC_PLLSOURCE_HSE | RCC_PLL_MUL9 | RCC_HCLK_DIV2)) &&
++        ((SysTick->CTRL & (SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
++                          SysTick_CTRL_CLKSOURCE_Msk)) ==
++                         (SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
++                          SysTick_CTRL_CLKSOURCE_Msk)) &&
++        (SysTick->LOAD == AUTO_CYCLES_PER_MS - 1U) &&
++        ((CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk) != 0U) &&
++        ((DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) != 0U) &&
++        state.initialized && (state.enabled == enabled) &&
++        (state.fault_latched == fault) &&
++        ((RCC->APB1ENR & RCC_APB1ENR_TIM3EN) != 0U) &&
++        ((RCC->APB2ENR & (RCC_APB2ENR_IOPCEN | RCC_APB2ENR_AFIOEN)) ==
++                         (RCC_APB2ENR_IOPCEN | RCC_APB2ENR_AFIOEN)) &&
++        ((AFIO->MAPR & AFIO_MAPR_TIM3_REMAP) == AFIO_MAPR_TIM3_REMAP_FULLREMAP) &&
++        ((GPIOC->CRL & 0xFF000000UL) == (enabled ? 0xAA000000UL : 0x22000000UL)) &&
++        ((GPIOC->ODR & (GPIO_PIN_6 | GPIO_PIN_7)) == 0U) &&
++        (TIM3->CR1 == (enabled ? (TIM_CR1_ARPE | TIM_CR1_CEN) : TIM_CR1_ARPE)) &&
++        (TIM3->CCER == (enabled ? (TIM_CCER_CC1E | TIM_CCER_CC2E) : 0U)) &&
++        (TIM3->PSC == 71U) && (TIM3->ARR == ACTUATOR_PWM_PERIOD_US - 1U) &&
++        (TIM3->CR2 == 0U) && (TIM3->SMCR == 0U) && (TIM3->CCMR2 == 0U) &&
++        (TIM3->CCMR1 == (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE |
++                         TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE)) &&
++        (TIM3->CNT < ACTUATOR_PWM_PERIOD_US) && (TIM3->DIER == 0U) &&
++        (TIM3->CCR1 == state.applied_pan_us) &&
++        (TIM3->CCR2 == state.applied_tilt_us);
++}
++
++static void AutoWait(uint32_t milliseconds, bool enabled)
++{
++    uint32_t start_cycle = DWT->CYCCNT;
++    uint32_t start_tick = HAL_GetTick();
++    uint32_t step;
++    uint32_t poll;
++    uint32_t cycles;
++    uint32_t ticks;
++    uint32_t start_counter = TIM3->CNT;
++    uint32_t counter;
++    uint32_t expected_counter;
++    uint32_t phase_error;
++
++    AutoRequire((milliseconds != 0U) && (milliseconds <= AUTO_HOLD_MS));
++    /* Finite nested loops, even if BOTH time bases stop. Each 1 ms milestone
++     * gets a fixed CPU poll budget; no HAL_Delay/WFI while PWM is enabled.
++     * Unsigned subtraction supports CYCCNT and HAL Tick rollover.
++     */
++    for (step = 1U; step <= milliseconds + 2U; step++)
++    {
++        for (poll = 0U; poll < AUTO_POLL_BUDGET; poll++)
++        {
++            if ((uint32_t)(DWT->CYCCNT - start_cycle) >= step * AUTO_CYCLES_PER_MS)
++            {
++                break;
++            }
++        }
++        AutoRequire(poll < AUTO_POLL_BUDGET);
++        AutoRequire(AutoConditions(enabled, false));
++        if (enabled)
++        {
++            cycles = (uint32_t)(DWT->CYCCNT - start_cycle);
++            counter = TIM3->CNT;
++            expected_counter = (start_counter + cycles / 72U) % ACTUATOR_PWM_PERIOD_US;
++            phase_error = (counter + ACTUATOR_PWM_PERIOD_US - expected_counter) %
++                          ACTUATOR_PWM_PERIOD_US;
++            /* Allow 100 us for read/ISR skew, reject a stalled/wrong-rate TIM3.
++             * This is a software consistency check, not a measured waveform.
++             */
++            AutoRequire((phase_error <= 100U) ||
++                        (phase_error >= ACTUATOR_PWM_PERIOD_US - 100U));
++        }
++        cycles = (uint32_t)(DWT->CYCCNT - start_cycle) / AUTO_CYCLES_PER_MS;
++        ticks = (uint32_t)(HAL_GetTick() - start_tick);
++        /* Reject stalled/fast Tick or unexpected execution delay. DWT and
++         * Tick agree within 10 ms; all waits also have a +20 ms deadline.
++         */
++        AutoRequire((cycles <= milliseconds + 20U) && (ticks <= milliseconds + 20U));
++        AutoRequire((cycles <= ticks + 10U) && (ticks <= cycles + 10U));
++        if ((cycles >= milliseconds) && (ticks >= milliseconds)) { return; }
++    }
++    AutoRequire(false);
++}
++
++static void AutoEnable(void)
++{
++    ActuatorSnapshot state;
++    AutoRequire(Actuator_Enable());
++    Actuator_GetSnapshot(&state);
++    AutoRequire((state.applied_pan_us == ACTUATOR_PAN_CENTER_US) &&
++                (state.applied_tilt_us == ACTUATOR_TILT_CENTER_US));
++    /* LOW opening frame (20 ms), then one COMPLETE center frame (20 ms). */
++    AutoWait(40U, true);
++    AutoRequire((TIM3->SR & TIM_SR_UIF) != 0U);
++}
++
++#if P1A_AUTOTEST_CASE == 2
++static void AutoNearBoundary(void)
++{
++    uint32_t start = DWT->CYCCNT;
++    uint32_t poll;
++    AutoRequire(AutoConditions(true, false));
++    /* Read-only phase selection. Apply retains sole ownership of UDIS/CCRs.
++     * CNT is sampled BEFORE the API: this does not prove MMIO at overflow.
++     * If TIM3 or DWT stalls, the time limit / finite poll budget faults closed.
++     */
++    for (poll = 0U; poll < 32U * AUTO_POLL_BUDGET; poll++)
++    {
++        AutoRequire((uint32_t)(DWT->CYCCNT - start) < 25U * AUTO_CYCLES_PER_MS);
++        if ((TIM3->CNT >= 19980U) && (TIM3->CNT < ACTUATOR_PWM_PERIOD_US))
++        {
++            return;
++        }
++    }
++    AutoRequire(false);
++}
++#endif
++
++static void AutoTarget(int32_t pan, int32_t tilt, uint16_t expected_pan,
++                       uint16_t expected_tilt, bool boundary)
++{
++    ActuatorCommand command;
++    ActuatorApplyResult result;
++    command.pan_position_us = pan;
++    command.tilt_position_us = tilt;
++    AutoRequire(AutoConditions(true, false));
++#if P1A_AUTOTEST_CASE == 2
++    if (boundary) { AutoNearBoundary(); }
++#else
++    (void)boundary;
++#endif
++    AutoRequire(Actuator_Apply(&command, &result));
++    AutoRequire((result.requested_pan_us == pan) && (result.requested_tilt_us == tilt) &&
++                (result.applied_pan_us == expected_pan) &&
++                (result.applied_tilt_us == expected_tilt) &&
++                (result.pan_saturated == (pan != (int32_t)expected_pan)) &&
++                (result.tilt_saturated == (tilt != (int32_t)expected_tilt)));
++    /* Next natural overflow, possibly one extra old frame under UDIS, then
++     * >=3 s at the requested active pair before any subsequent action.
++     */
++    AutoWait(AUTO_HOLD_MS, true);
++}
++
++void P1aAutotest_Run(void)
++{
++#if P1A_AUTOTEST_CASE == 3
++    ActuatorCommand command;
++    ActuatorApplyResult result;
++#endif
++    AutoRequire((__get_IPSR() == 0U) && (__get_PRIMASK() == 0U));
++    /* Cortex-M3 cycle counter works without a debugger. Never reset it or
++     * touch TIM3 to manufacture timing success; failure is a latched stop.
++     */
++    AutoRequire((DWT->CTRL & DWT_CTRL_NOCYCCNT_Msk) == 0U);
++    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
++    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
++    __DSB();
++    __ISB();
++    AutoWait(2000U, false);
++    AutoEnable();
++    AutoWait(AUTO_HOLD_MS, true);
++
++#if P1A_AUTOTEST_CASE == 1
++    AutoTarget(1000, 1500, 1000U, 1500U, false);
++    AutoTarget(2000, 1500, 2000U, 1500U, false);
++    AutoTarget(1500, 1200, 1500U, 1200U, false);
++    AutoTarget(1500, 1600, 1500U, 1600U, false);
++#elif P1A_AUTOTEST_CASE == 2
++    AutoTarget(0, 0, 1000U, 1200U, false);
++    AutoTarget(3000, 3000, 2000U, 1600U, false);
++    AutoTarget(1000, 1600, 1000U, 1600U, false);
++    AutoTarget(2000, 1200, 2000U, 1200U, true);
++    AutoTarget(1000, 1600, 1000U, 1600U, true);
++#else
++    AutoTarget(1000, 1600, 1000U, 1600U, false);
++    Actuator_Disable();
++    AutoWait(2000U, false);
++    AutoEnable();
++    AutoWait(AUTO_HOLD_MS, true);
++    AutoTarget(2000, 1200, 2000U, 1200U, false);
++    Actuator_ForceSafeOutput(); /* Controlled software fault; latch retained. */
++    AutoRequire(AutoConditions(false, true));
++    AutoRequire(!Actuator_Enable());
++    AutoRequire(AutoConditions(false, true));
++    command.pan_position_us = 1500;
++    command.tilt_position_us = 1500;
++    AutoRequire(!Actuator_Apply(&command, &result));
++    AutoRequire((result.applied_pan_us == 0U) && (result.applied_tilt_us == 0U));
++    AutoRequire(AutoConditions(false, true));
++    AutoRequire(!Actuator_InitSafe());
++    AutoRequire(AutoConditions(false, true));
++#endif
++    Actuator_Disable();
++    AutoRequire(AutoConditions(false, P1A_AUTOTEST_CASE == 3));
++    /* Return to main's permanent disabled WFI. No restart without MCU reset. */
++}
++#endif
++
+ #if P1A_ACTUATOR_TEST_ENABLE
+ #include "stm32f1xx_hal.h"
+ 
+diff --git a/App/p1a_test/p1a_test.h b/App/p1a_test/p1a_test.h
+index e208d82..c3212e2 100644
+--- a/App/p1a_test/p1a_test.h
++++ b/App/p1a_test/p1a_test.h
+@@ -9,6 +9,29 @@
+ #error "P1A_ACTUATOR_TEST_ENABLE must be 0 or 1"
+ #endif
+ 
++#ifndef P1A_AUTOTEST_ENABLE
++#define P1A_AUTOTEST_ENABLE 0
++#endif
++#ifndef P1A_AUTOTEST_CASE
++#define P1A_AUTOTEST_CASE 1
++#endif
++#if (P1A_AUTOTEST_ENABLE != 0) && (P1A_AUTOTEST_ENABLE != 1)
++#error "P1A_AUTOTEST_ENABLE must be 0 or 1"
++#endif
++#if P1A_AUTOTEST_ENABLE && P1A_ACTUATOR_TEST_ENABLE
++#error "Automatic test and RAM mailbox must not be enabled together"
++#endif
++#if (P1A_AUTOTEST_CASE < 1) || (P1A_AUTOTEST_CASE > 3)
++#error "P1A_AUTOTEST_CASE must be 1, 2 or 3"
++#endif
++
++#if P1A_AUTOTEST_ENABLE
++/* Unloaded waveform test ONLY: disconnect servo signals AND power.
++ * Called once after InitSafe; returns disabled on success, fatal on failure.
++ */
++void P1aAutotest_Run(void);
++#endif
++
+ #if P1A_ACTUATOR_TEST_ENABLE
+ #include "actuator.h"
+ 
+diff --git a/Core/Inc/FreeRTOSConfig.h b/Core/Inc/FreeRTOSConfig.h
+index 18f29ae..7948155 100644
+--- a/Core/Inc/FreeRTOSConfig.h
++++ b/Core/Inc/FreeRTOSConfig.h
+@@ -14,7 +14,7 @@ void AppFatal_Assert(const char *file, int line);
+ // #define configSYSTICK_CLOCK_HZ                          (configCPU_CLOCK_HZ / 8)
+ #define configTICK_RATE_HZ                              1000
+ 
+-/* Application priorities are 0, 2, 4 and 5. */
++/* C1 uses Idle=0 and the no-output ControlTask=1. */
+ #define configMAX_PRIORITIES                            6
+ #define configMINIMAL_STACK_SIZE                        128
+ #define configMAX_TASK_NAME_LEN                         12
+@@ -26,7 +26,7 @@ void AppFatal_Assert(const char *file, int line);
+ #define configTASK_NOTIFICATION_ARRAY_ENTRIES           1
+ #define configUSE_MUTEXES                               0
+ #define configUSE_RECURSIVE_MUTEXES                     0
+-#define configUSE_COUNTING_SEMAPHORES                   1
++#define configUSE_COUNTING_SEMAPHORES                   0
+ #define configUSE_ALTERNATIVE_API                       0
+ #define configQUEUE_REGISTRY_SIZE                       0
+ #define configUSE_QUEUE_SETS                            0
+@@ -64,11 +64,11 @@ void AppFatal_Assert(const char *file, int line);
+ #define INCLUDE_vTaskDelete                             0
+ #define INCLUDE_vTaskSuspend                            0
+ #define INCLUDE_xResumeFromISR                          0
+-#define INCLUDE_vTaskDelayUntil                        1
++#define INCLUDE_xTaskDelayUntil                        1
+ #define INCLUDE_vTaskDelay                              0
+ #define INCLUDE_xTaskGetSchedulerState                  1
+ #define INCLUDE_xTaskGetCurrentTaskHandle               1
+-#define INCLUDE_uxTaskGetStackHighWaterMark             0
++#define INCLUDE_uxTaskGetStackHighWaterMark             1
+ #define INCLUDE_xTaskGetIdleTaskHandle                  0
+ #define INCLUDE_eTaskGetState                           0
+ #define INCLUDE_xEventGroupSetBitFromISR                0
+diff --git a/Core/Src/interrupts.c b/Core/Src/interrupts.c
+index df1f0af..06d3440 100644
+--- a/Core/Src/interrupts.c
++++ b/Core/Src/interrupts.c
+@@ -1,10 +1,31 @@
+ #include "stm32f1xx_hal.h"
+ #include "p1a_safety.h"
+-
+-/* P1a uses the HAL time base only; no FreeRTOS kernel is linked. */
++#include "FreeRTOS.h"
++#include "task.h"
++
++/* Startup owns vector slots; strong SVC/PendSV definitions come ONLY from
++ * portable/RVDS/ARM_CM3/port.c through FreeRTOSConfig.h aliases. */
++void xPortSysTickHandler(void);
++void SysTick_Handler(void);
++void NMI_Handler(void);
++void HardFault_Handler(void);
++void MemManage_Handler(void);
++void BusFault_Handler(void);
++void UsageFault_Handler(void);
++void DebugMon_Handler(void);
++
++/* One hardware interrupt, one HAL increment. Before scheduler start only
++ * HAL runs. During scheduler suspension the port MUST still receive ticks
++ * so xTaskIncrementTick can accumulate pending ticks for xTaskResumeAll.
++ * No runtime clock/tick reconfiguration or HAL_SuspendTick in C1.
++ */
+ void SysTick_Handler(void)
+ {
+     HAL_IncTick();
++    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
++    {
++        xPortSysTickHandler();
++    }
+ }
+ 
+ void NMI_Handler(void)
+@@ -32,17 +53,6 @@ void UsageFault_Handler(void)
+     P1a_FatalError();
+ }
+ 
+-/* These exceptions are unexpected in C1; P1b must review RTOS ownership. */
+-void SVC_Handler(void)
+-{
+-    P1a_FatalError();
+-}
+-
+-void PendSV_Handler(void)
+-{
+-    P1a_FatalError();
+-}
+-
+ void DebugMon_Handler(void)
+ {
+     P1a_FatalError();
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+index c03610a..9180380 100644
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -1,8 +1,33 @@
+ #include "stm32f1xx_hal.h"
+ #include "p1a_safety.h"
+ #include "actuator.h"
++#include "FreeRTOS.h"
++#include "task.h"
+ #include "../../App/p1a_test/p1a_test.h"
+ 
++/* C1 is always a no-output scheduler image. Keep P1a sources unchanged,
++ * but reject accidental reuse of the previous waveform-test build flags. */
++#if P1A_AUTOTEST_ENABLE || P1A_ACTUATOR_TEST_ENABLE
++#error "C1 requires both P1a test modes OFF"
++#endif
++#ifndef P1B_AUTOTEST_ENABLE
++#define P1B_AUTOTEST_ENABLE 0
++#endif
++#if P1B_AUTOTEST_ENABLE != 0
++#error "C1 has no P1b output test; P1B_AUTOTEST_ENABLE must be 0"
++#endif
++#if configTICK_RATE_HZ != 1000
++#error "C1 shared HAL/RTOS SysTick requires 1000 Hz"
++#endif
++#if TICK_INT_PRIORITY != configLIBRARY_LOWEST_INTERRUPT_PRIORITY
++#error "HAL and FreeRTOS SysTick must use the same lowest priority"
++#endif
++
++#define CONTROL_STACK_WORDS 256U /* StackType_t words, not bytes. */
++static StaticTask_t s_control_tcb;
++static StackType_t s_control_stack[CONTROL_STACK_WORDS];
++static void ControlTask(void *argument);
++
+ #if HSE_VALUE != 8000000U
+ #error "P1a requires the confirmed 8 MHz HSE clock configuration"
+ #endif
+@@ -67,14 +92,41 @@ int main(void)
+     {
+         P1a_FatalError();
+     }
++    if (xTaskCreateStatic(ControlTask, "ControlTask", CONTROL_STACK_WORDS,
++                          NULL, tskIDLE_PRIORITY + 1U, s_control_stack,
++                          &s_control_tcb) == NULL)
++    {
++        P1a_FatalError();
++    }
++
++    /* End the HAL-owned startup timebase before the port restarts the SAME
++     * SysTick at 72 MHz / 1000. Clear any old pending tick so it cannot be
++     * mistaken for the first RTOS tick. No HAL delay follows this handoff.
++     * The reviewed RVDS port's prvStartFirstTask re-enables IRQs before SVC.
++     */
++    __disable_irq();
++    SysTick->CTRL = 0U;
++    SysTick->VAL = 0U;
++    SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
++    __DSB();
++    __ISB();
++    vTaskStartScheduler();
++    P1a_FatalError(); /* Idle creation/port failure or unexpected return. */
++    return 0;
++}
++
++static void ControlTask(void *argument)
++{
++    TickType_t last_wake = xTaskGetTickCount();
++    (void)argument;
++
++    /* C1 placeholder only: no command source, Enable/Apply/Disable or GPIO.
++     * The 20-tick wait exercises blocking/context switches; it is not an
++     * externally measured 20 ms control-loop acceptance result.
++     */
+     for (;;)
+     {
+-#if P1A_ACTUATOR_TEST_ENABLE
+-        P1aTest_Poll();
+-#else
+-        /* Default image has no caller of Enable/Apply and no scheduler. */
+-        __WFI();
+-#endif
++        (void)xTaskDelayUntil(&last_wake, pdMS_TO_TICKS(20U));
+     }
+ }
+ 
+diff --git a/Projects/RTnode.uvoptx b/Projects/RTnode.uvoptx
+index b71820f..8381d72 100644
+--- a/Projects/RTnode.uvoptx
++++ b/Projects/RTnode.uvoptx
+@@ -28,7 +28,7 @@
+     <TargetOption>
+       <CLKADS>12000000</CLKADS>
+       <OPTTT>
+-        <gFlags>0</gFlags>
++        <gFlags>1</gFlags>
+         <BeepAtEnd>1</BeepAtEnd>
+         <RunSim>0</RunSim>
+         <RunTarget>1</RunTarget>
+@@ -45,7 +45,7 @@
+         <PageWidth>79</PageWidth>
+         <PageLength>66</PageLength>
+         <TabStop>8</TabStop>
+-        <ListingPath>.\</ListingPath>
++        <ListingPath>.\Listings\</ListingPath>
+       </OPTLEX>
+       <ListingPage>
+         <CreateCListing>1</CreateCListing>
+@@ -73,7 +73,7 @@
+         <LExpSel>0</LExpSel>
+       </OPTXL>
+       <OPTFL>
+-        <tvExp>0</tvExp>
++        <tvExp>1</tvExp>
+         <tvExpOptDlg>0</tvExpOptDlg>
+         <IsCurrentTarget>1</IsCurrentTarget>
+       </OPTFL>
+@@ -166,15 +166,182 @@
+       <pszMrulep></pszMrulep>
+       <pSingCmdsp></pSingCmdsp>
+       <pMultCmdsp></pMultCmdsp>
++      <DebugDescription>
++        <Enable>1</Enable>
++        <EnableFlashSeq>1</EnableFlashSeq>
++        <EnableLog>0</EnableLog>
++        <Protocol>2</Protocol>
++        <DbgClock>10000000</DbgClock>
++      </DebugDescription>
+     </TargetOption>
+   </Target>
+ 
+   <Group>
+-    <GroupName>Source Group 1</GroupName>
++    <GroupName>Core</GroupName>
++    <tvExp>1</tvExp>
++    <tvExpOptDlg>0</tvExpOptDlg>
++    <cbSel>0</cbSel>
++    <RteFlg>0</RteFlg>
++    <File>
++      <GroupNumber>1</GroupNumber>
++      <FileNumber>1</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Core\Src\main.c</PathWithFileName>
++      <FilenameWithoutPath>main.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++    <File>
++      <GroupNumber>1</GroupNumber>
++      <FileNumber>2</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Core\Src\interrupts.c</PathWithFileName>
++      <FilenameWithoutPath>interrupts.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++  </Group>
++
++  <Group>
++    <GroupName>Actuator</GroupName>
++    <tvExp>1</tvExp>
++    <tvExpOptDlg>0</tvExpOptDlg>
++    <cbSel>0</cbSel>
++    <RteFlg>0</RteFlg>
++    <File>
++      <GroupNumber>2</GroupNumber>
++      <FileNumber>3</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\App\actuator\src\actuator.c</PathWithFileName>
++      <FilenameWithoutPath>actuator.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++  </Group>
++
++  <Group>
++    <GroupName>Startup</GroupName>
++    <tvExp>1</tvExp>
++    <tvExpOptDlg>0</tvExpOptDlg>
++    <cbSel>0</cbSel>
++    <RteFlg>0</RteFlg>
++    <File>
++      <GroupNumber>3</GroupNumber>
++      <FileNumber>4</FileNumber>
++      <FileType>2</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Startup\startup_stm32f103xe.s</PathWithFileName>
++      <FilenameWithoutPath>startup_stm32f103xe.s</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++  </Group>
++
++  <Group>
++    <GroupName>CMSIS</GroupName>
++    <tvExp>0</tvExp>
++    <tvExpOptDlg>0</tvExpOptDlg>
++    <cbSel>0</cbSel>
++    <RteFlg>0</RteFlg>
++    <File>
++      <GroupNumber>4</GroupNumber>
++      <FileNumber>5</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Driver\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</PathWithFileName>
++      <FilenameWithoutPath>system_stm32f1xx.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++  </Group>
++
++  <Group>
++    <GroupName>HAL</GroupName>
++    <tvExp>1</tvExp>
++    <tvExpOptDlg>0</tvExpOptDlg>
++    <cbSel>0</cbSel>
++    <RteFlg>0</RteFlg>
++    <File>
++      <GroupNumber>5</GroupNumber>
++      <FileNumber>6</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</PathWithFileName>
++      <FilenameWithoutPath>stm32f1xx_hal.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++    <File>
++      <GroupNumber>5</GroupNumber>
++      <FileNumber>7</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</PathWithFileName>
++      <FilenameWithoutPath>stm32f1xx_hal_rcc.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++    <File>
++      <GroupNumber>5</GroupNumber>
++      <FileNumber>8</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</PathWithFileName>
++      <FilenameWithoutPath>stm32f1xx_hal_cortex.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++    <File>
++      <GroupNumber>5</GroupNumber>
++      <FileNumber>9</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</PathWithFileName>
++      <FilenameWithoutPath>stm32f1xx_hal_gpio.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
++  </Group>
++
++  <Group>
++    <GroupName>tests</GroupName>
+     <tvExp>0</tvExp>
+     <tvExpOptDlg>0</tvExpOptDlg>
+     <cbSel>0</cbSel>
+     <RteFlg>0</RteFlg>
++    <File>
++      <GroupNumber>6</GroupNumber>
++      <FileNumber>10</FileNumber>
++      <FileType>1</FileType>
++      <tvExp>0</tvExp>
++      <tvExpOptDlg>0</tvExpOptDlg>
++      <bDave2>0</bDave2>
++      <PathWithFileName>..\App\p1a_test\p1a_test.c</PathWithFileName>
++      <FilenameWithoutPath>p1a_test.c</FilenameWithoutPath>
++      <RteFlg>0</RteFlg>
++      <bShared>0</bShared>
++    </File>
+   </Group>
+ 
+ </ProjectOpt>
+diff --git a/Projects/RTnode.uvprojx b/Projects/RTnode.uvprojx
+index ebc9cde..98d757f 100644
+--- a/Projects/RTnode.uvprojx
++++ b/Projects/RTnode.uvprojx
+@@ -10,7 +10,8 @@
+       <TargetName>Target 1</TargetName>
+       <ToolsetNumber>0x4</ToolsetNumber>
+       <ToolsetName>ARM-ADS</ToolsetName>
+-      <uAC6>1</uAC6>
++      <pCCUsed>5060960::V5.06 update 7 (build 960)::ARMCC</pCCUsed>
++      <uAC6>0</uAC6>
+       <TargetOption>
+         <TargetCommonOption>
+           <Device>STM32F103ZE</Device>
+@@ -51,10 +52,10 @@
+           <OutputName>RTnode</OutputName>
+           <CreateExecutable>1</CreateExecutable>
+           <CreateLib>0</CreateLib>
+-          <CreateHexFile>0</CreateHexFile>
++          <CreateHexFile>1</CreateHexFile>
+           <DebugInformation>1</DebugInformation>
+           <BrowseInformation>1</BrowseInformation>
+-          <ListingPath>.\</ListingPath>
++          <ListingPath>.\Listings\</ListingPath>
+           <HexFormatSelection>1</HexFormatSelection>
+           <Merge32K>0</Merge32K>
+           <CreateBatchFile>0</CreateBatchFile>
+@@ -125,47 +126,6 @@
+             <HexOffset>0</HexOffset>
+             <Oh166RecLen>16</Oh166RecLen>
+           </OPTHX>
+-          <Simulator>
+-            <UseSimulator>0</UseSimulator>
+-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
+-            <RunToMain>1</RunToMain>
+-            <RestoreBreakpoints>1</RestoreBreakpoints>
+-            <RestoreWatchpoints>1</RestoreWatchpoints>
+-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
+-            <RestoreFunctions>1</RestoreFunctions>
+-            <RestoreToolbox>1</RestoreToolbox>
+-            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
+-            <RestoreSysVw>1</RestoreSysVw>
+-          </Simulator>
+-          <Target>
+-            <UseTarget>1</UseTarget>
+-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
+-            <RunToMain>1</RunToMain>
+-            <RestoreBreakpoints>1</RestoreBreakpoints>
+-            <RestoreWatchpoints>1</RestoreWatchpoints>
+-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
+-            <RestoreFunctions>0</RestoreFunctions>
+-            <RestoreToolbox>1</RestoreToolbox>
+-            <RestoreTracepoints>1</RestoreTracepoints>
+-            <RestoreSysVw>1</RestoreSysVw>
+-          </Target>
+-          <RunDebugAfterBuild>0</RunDebugAfterBuild>
+-          <TargetSelection>0</TargetSelection>
+-          <SimDlls>
+-            <CpuDll></CpuDll>
+-            <CpuDllArguments></CpuDllArguments>
+-            <PeripheralDll></PeripheralDll>
+-            <PeripheralDllArguments></PeripheralDllArguments>
+-            <InitializationFile></InitializationFile>
+-          </SimDlls>
+-          <TargetDlls>
+-            <CpuDll></CpuDll>
+-            <CpuDllArguments></CpuDllArguments>
+-            <PeripheralDll></PeripheralDll>
+-            <PeripheralDllArguments></PeripheralDllArguments>
+-            <InitializationFile></InitializationFile>
+-            <Driver>BIN\UL2CM3.DLL</Driver>
+-          </TargetDlls>
+         </DebugOption>
+         <Utilities>
+           <Flash1>
+@@ -173,7 +133,7 @@
+             <UseExternalTool>0</UseExternalTool>
+             <RunIndependent>0</RunIndependent>
+             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
+-            <Capability>0</Capability>
++            <Capability>1</Capability>
+             <DriverSelection>-1</DriverSelection>
+           </Flash1>
+           <bUseTDR>1</bUseTDR>
+@@ -299,17 +259,17 @@
+                 <Size>0x0</Size>
+               </XRAM>
+               <OCR_RVCT1>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT1>
+               <OCR_RVCT2>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT2>
+               <OCR_RVCT3>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT3>
+@@ -319,7 +279,7 @@
+                 <Size>0x80000</Size>
+               </OCR_RVCT4>
+               <OCR_RVCT5>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT5>
+@@ -365,7 +325,7 @@
+             <wLevel>2</wLevel>
+             <uThumb>0</uThumb>
+             <uSurpInc>0</uSurpInc>
+-            <uC99>0</uC99>
++            <uC99>1</uC99>
+             <uGnu>0</uGnu>
+             <useXO>0</useXO>
+             <v6Lang>3</v6Lang>
+@@ -377,9 +337,9 @@
+             <v6Rtti>0</v6Rtti>
+             <VariousControls>
+               <MiscControls></MiscControls>
+-              <Define></Define>
++              <Define>P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER</Define>
+               <Undefine></Undefine>
+-              <IncludePath></IncludePath>
++              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3</IncludePath>
+             </VariousControls>
+           </Cads>
+           <Aads>
+@@ -421,10 +381,132 @@
+       </TargetOption>
+       <Groups>
+         <Group>
+-          <GroupName>Source Group 1</GroupName>
++          <GroupName>Core</GroupName>
++          <Files>
++            <File>
++              <FileName>main.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\main.c</FilePath>
++            </File>
++            <File>
++              <FileName>interrupts.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\interrupts.c</FilePath>
++            </File>
++            <File>
++              <FileName>freertos_static.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\freertos_static.c</FilePath>
++            </File>
++            <File>
++              <FileName>rtos_hooks.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\rtos_hooks.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>Actuator</GroupName>
++          <Files>
++            <File>
++              <FileName>actuator.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\actuator\src\actuator.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>Startup</GroupName>
++          <Files>
++            <File>
++              <FileName>startup_stm32f103xe.s</FileName>
++              <FileType>2</FileType>
++              <FilePath>..\Startup\startup_stm32f103xe.s</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>CMSIS</GroupName>
++          <Files>
++            <File>
++              <FileName>system_stm32f1xx.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>HAL</GroupName>
++          <Files>
++            <File>
++              <FileName>stm32f1xx_hal.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</FilePath>
++            </File>
++            <File>
++              <FileName>stm32f1xx_hal_rcc.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</FilePath>
++            </File>
++            <File>
++              <FileName>stm32f1xx_hal_cortex.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</FilePath>
++            </File>
++            <File>
++              <FileName>stm32f1xx_hal_gpio.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>tests</GroupName>
++          <Files>
++            <File>
++              <FileName>p1a_test.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\p1a_test\p1a_test.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>FreeRTOS</GroupName>
++          <Files>
++            <File>
++              <FileName>tasks.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Middlewares\FreeRTOS\tasks.c</FilePath>
++            </File>
++            <File>
++              <FileName>list.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Middlewares\FreeRTOS\list.c</FilePath>
++            </File>
++            <File>
++              <FileName>port.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3\port.c</FilePath>
++            </File>
++          </Files>
+         </Group>
+       </Groups>
+     </Target>
+   </Targets>
+ 
++  <RTE>
++    <apis/>
++    <components/>
++    <files/>
++  </RTE>
++
++  <LayerInfo>
++    <Layers>
++      <Layer>
++        <LayName>RTnode</LayName>
++        <LayPrjMark>1</LayPrjMark>
++      </Layer>
++    </Layers>
++  </LayerInfo>
++
+ </Project>
+diff --git a/doc/P1/C2_hardware_guide.md b/doc/P1/C2_hardware_guide.md
+index bd063a4..00d1ff5 100644
+--- a/doc/P1/C2_hardware_guide.md
++++ b/doc/P1/C2_hardware_guide.md
+@@ -1,16 +1,94 @@
+ # C2：H01–H10 实测操作（尚未执行）
+ 
+-日期：2026-10-16（Asia/Shanghai）。本文件是用户操作指导，所有 H 项当前均为 **NOT_RUN**。先完成用户本机编译/链接并保存 Build Log/MAP，再进行 H01。P1a Gate 目前为 PARTIAL。
++日期：2026-10-16（Asia/Shanghai）。本文件是用户操作指导，所有 H 项当前均为 **NOT_RUN**。构建检查不代表实机通过；先保存所用固件的 Build Log/MAP，再进行 H01。P1a Gate 目前为 PARTIAL。
+ 
+ ## 固件与接线
+ 
+-使用唯一工程 `Projects/RTnode.uvprojx` / `Target 1`。工程增量输入清单见 [C2_handoff.md](C2_handoff.md)。Codex 没有编译、下载或替用户修改工程配置；当前 XML 尚无源条目，用户需在同一工程内落实 C1/C2 输入清单。确认实际编译器版本、宏和源码选择后再烧录，不能沿用历史 AXF。保存源码 diff/哈希、固件 SHA256、Build Log、MAP 和下载时间。
++使用唯一工程 `Projects/RTnode.uvprojx` / `Target 1`。本次读取的本地工程已经含 main、actuator 和 p1a_test 源条目，当前选择 ARMCLANG 6.16；本次改造没有修改工程配置或覆盖已有构建产物。独立 ARMCC5 检查见 [P1a_autotest_validation.md](P1a_autotest_validation.md)。确认实际编译器版本、宏和源码选择后再烧录，不能沿用历史 AXF。保存源码 diff/哈希、固件 SHA256、Build Log、MAP 和下载时间。
+ 
+-- **默认固件**：`P1A_ACTUATOR_TEST_ENABLE` 未定义或为 `0`。初始化 actuator 后停在 WFI；没有 Enable/Apply 调用路径，也没有测试邮箱符号。用于 H01/H02 和测试结束后的恢复。
+-- **受控测试固件**：同一工程中，全局定义 `P1A_ACTUATOR_TEST_ENABLE=1`，并选入 `App/p1a_test/p1a_test.c`。编译开关在 main/test 两个翻译单元必须一致。它只轮询邮箱，上电仍不使能。
++- **默认固件**：`P1A_ACTUATOR_TEST_ENABLE=0`、`P1A_AUTOTEST_ENABLE=0`（均默认 0）。初始化 actuator 后停在 WFI；没有 Enable/Apply 调用路径，也没有测试邮箱符号。用于 H01/H02 和测试结束后的恢复。
++- **RAM Mailbox 固件**：同一工程中，全局定义 `P1A_ACTUATOR_TEST_ENABLE=1,P1A_AUTOTEST_ENABLE=0`，并选入 `App/p1a_test/p1a_test.c`。它只轮询邮箱，上电仍不使能；需要 SWD 调试器，不适用于目前仅 CH340 的设备条件。
++- **自动测试固件**：全局定义 `P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=1,P1A_AUTOTEST_CASE=N`。仅用于断开舵机信号及动力的无负载波形采集，复位后自动执行一次，详见下节。两种测试入口同时置 1 会编译报错；所有翻译单元的编译宏必须一致。
+ - 先断开两个舵机的信号和动力。分析仪接 PC6→Pan、PC7→Tilt，GND→MCU GND；记录实际分析仪通道编号，建议 ≥10 MS/s，门限与 3.3 V 信号匹配。
+ - 每个稳定工况采集 ≥100 连续周期（50 Hz 下至少约 2 秒，建议 3 秒）；周期判据 19900–20100 µs，高电平目标 ±10 µs。记录采样率、门限、探头、线长、型号和原始 CSV/工程文件。时钟/脉宽计算值均非实测。
+-- 保持 MCU 连续运行，使用调试器运行中 RAM 访问。PWM 活跃时不要打断点、暂停、单步或由调试器调用驱动函数；暂停以及 DBGMCU 冻结配置可能扭曲脉冲，不能据此判断正常瞬态。
++- 使用 RAM Mailbox 时保持 MCU 连续运行，使用调试器运行中 RAM 访问。PWM 活跃时不要打断点、暂停、单步或由调试器调用驱动函数；暂停以及 DBGMCU 冻结配置可能扭曲脉冲，不能据此判断正常瞬态。
++
++## 无 SWD 调试器：CH340 烧录后 RESET 自动测试
++
++不需要串口输入、RAM 写入或 Watch 窗口。只使用当前工程，在 Keil 的 Target 全局 C/C++ Defines 中设置下表宏；不要只给 main 或单个文件设宏。头文件默认值保持不动，不添加第二套工程。
++
++| 固件 | 全局宏（同时保留 STM32F103xE、USE_HAL_DRIVER） |
++|---|---|
++| 默认禁止 | `P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0` |
++| CASE 1 | `P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=1,P1A_AUTOTEST_CASE=1` |
++| CASE 2 | `P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=1,P1A_AUTOTEST_CASE=2` |
++| CASE 3 | `P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=1,P1A_AUTOTEST_CASE=3` |
++
++`P1A_AUTOTEST_CASE` 默认 1；仅接受 1/2/3，非法值编译报错。两种 ENABLE 仅接受 0/1。
++
++1. **断开两个舵机信号和动力**，仅接 PC6、PC7 和分析仪 GND。自动脚本不得用于机械带载测试或正式控制。
++2. 在同一 Keil 工程选定一个 CASE，Rebuild，确认没有错误，保存 Build Log、MAP、HEX 与 SHA256；不能烧录上次 CASE 的旧 HEX。
++3. 按板卡既有串口 ISP 方法进入系统 Bootloader，用 CH340 烧录新 HEX。CH340 只是烧录通道；本固件没有 UART 命令入口。烧录后恢复用户 Flash 启动方式（BOOT0=0，其他启动跳线按板卡手册），避免 RESET 后仍进 Bootloader。
++4. 逻辑分析仪先开始采集，再按 RESET。首个 C main 动作为原有关断，随后 HAL/72 MHz/InitSafe 成功后低电平等待约 2 s。复位早期仍存在芯片固有高阻阶段，不能把该阶段分析仪读低当作软件主动拉低。
++5. 程序明确 Enable：先约 20 ms 全低起始帧，再双路 1500 µs。Enable 后至少等 40 ms，完成一个完整中位周期后才可能 Apply。每个 CASE 完成后 Disable，永久停留低电平；不会再次使能或循环扫动。再次按 RESET 会从头执行一次，CASE 3 的故障锁存也只有真正 MCU reset 才清除。
++6. 每个状态截取 ≥100 连续周期，并保存变更前后两路瞬态；若采集内存不足，可重复 RESET，按下表时间偏移分段采集。测试结束把两个 ENABLE 恢复 0，在同一工程重建并经 CH340 刷回默认禁止固件，复核上电没有 PWM。
++
++以下所有 `(Pan,Tilt)` 单位均为 µs；有输出时固定为 50 Hz、周期 20000 µs、计数分辨率 1 µs。表中保持 3.040 s 指 API 调用后的等待预算；预装载最多预留两个 20 ms 帧，实际新目标稳定时间至少 3.000 s。Enable 后的中位段额外包含 40 ms 保护等待。表内时间为设计标称值，尚非测量结果。
++
++### CASE 1：基础波形（初始化完成后总计约 17.24 s）
++
++| 顺序 | 动作/请求 | 预期物理输出 | 等待 |
++|---|---|---|---|
++| 0 | 安全初始化后禁止 | 两路持续低 | 2.000 s |
++| 1 | Enable | 起始低帧 → `(1500,1500)` | 40 ms 保护 + 3.040 s |
++| 2 | Apply `(1000,1500)` | `(1000,1500)` | 3.040 s |
++| 3 | Apply `(2000,1500)` | `(2000,1500)` | 3.040 s |
++| 4 | Apply `(1500,1200)` | `(1500,1200)` | 3.040 s |
++| 5 | Apply `(1500,1600)` | `(1500,1600)` | 3.040 s |
++| 6 | Disable | 两路持续低 | 永久，直到复位 |
++
++首个 Enable 相对初始化完成约 t=2.000 s；随后四个 Apply 约 t=5.080、8.120、11.160、14.200 s；Disable 约 t=17.240 s。实际新脉宽在后续自然更新同时生效。
++
++### CASE 2：限幅和双轴同步（约 20.28 s，另加两次有界边界等待）
++
++| 顺序 | 动作/请求 | 预期物理输出 | 等待 |
++|---|---|---|---|
++| 0 | 安全初始化后禁止 | 两路持续低 | 2.000 s |
++| 1 | Enable | 起始低帧 → `(1500,1500)` | 40 ms + 3.040 s |
++| 2 | Apply `(0,0)` | 限幅 `(1000,1200)`，两轴 saturated=true | 3.040 s |
++| 3 | Apply `(3000,3000)` | 限幅 `(2000,1600)`，两轴 saturated=true | 3.040 s |
++| 4 | 普通相位 Apply `(1000,1600)` | `(1000,1600)`，两轴 saturated=false | 3.040 s |
++| 5 | 边界附近 Apply `(2000,1200)` | `(2000,1200)` | 3.040 s |
++| 6 | 边界附近 Apply `(1000,1600)` | `(1000,1600)` | 3.040 s |
++| 7 | Disable | 两路持续低 | 永久，直到复位 |
++
++前四段时刻与 CASE 1 相同；两次边界请求各先等 TIM3 CNT≥19980，单次 <25 ms，并有 2097152 次轮询上限。没有改 CNT、CCR、UG 或 UDIS，双通道仍由驱动原有 UDIS 事务保证同步。采样 CNT 接近溢出不等于实际 CCR 写入恰好跨边界；API 内部检查和中断可使写入落在下一帧，精确边界覆盖须以波形确认，不足时 H07 记 PARTIAL/NOT_RUN。允许两路一起多保留一旧帧，不允许混合新旧轴。
++
++### CASE 3：禁止、恢复和锁存（约 16.24 s）
++
++| 顺序 | 动作/请求 | 预期输出/内部检查 | 等待 |
++|---|---|---|---|
++| 0 | 安全初始化后禁止 | 两路低 | 2.000 s |
++| 1 | Enable | 起始低帧 → `(1500,1500)` | 40 ms + 3.040 s |
++| 2 | Apply `(1000,1600)` | 非中位安全目标 | 3.040 s |
++| 3 | Disable | 两路低，不清故障 | 2.000 s |
++| 4 | 再明确 Enable | 起始低帧 → `(1500,1500)`，不重放旧目标 | 40 ms + 3.040 s |
++| 5 | Apply `(2000,1200)` | 非中位安全目标 | 3.040 s |
++| 6 | ForceSafeOutput | 立即低，fault_latched=true、enabled=false | 不延迟关断 |
++| 7 | 依次 Enable / Apply `(1500,1500)` / InitSafe | 必须全部返回 false；Apply applied=0/0；每步核查故障及禁止状态 | 直接检查，无恢复动作 |
++| 8 | Disable | 故障仍锁存，两路低 | 永久，直到复位 |
++
++Disable 约 t=8.120 s，再 Enable 约 t=10.120 s，非中位 Apply 约 t=13.200 s，受控故障约 t=16.240 s。主动 Disable/故障可截短末尾高脉冲，这是原有立即关断行为。
++
++### 有界等待与判读限制
++
++自动测试启用 Cortex-M3 DWT CYCCNT，无需调试器；不清零 CYCCNT，也不修改复位/故障标志。每个 1 ms 等待里程碑最多轮询 65536 次，外层最多 `等待毫秒数+2` 步；即使 DWT 与 Tick 同停，也不会卡在无限等待。DWT 按 72000 cycles/ms 计时，同时核对 HAL Tick，两者偏差超过 10 ms、等待超过目标+20 ms、TIM3 相位偏差超过 100 µs或运行条件检查失败均进入 `P1a_FatalError()`，先关断并锁存，再永久安全停留。Enable 后的等待不用 HAL_Delay/WFI。DWT 不可用也拒绝自动测试，不能降低检查来凑成功。
++
++检测依赖 CPU 继续执行；轮询次数是有限工作量上限，不是独立硬件看门狗。初始化之前沿用原 HAL 时钟初始化路径（输出已关断）。该入口不是功能安全认证机制。
++
++正常 API 失败立即进入原有 fatal 关断。CASE 3 故障后的三次预期拒绝是内部断言的一部分；若意外返回成功，仍立即强制关断并安全停留，不清除锁存来重试。运行中检查时钟、上下文、Tick/DWT、禁止/使能状态、引脚、TIM3 配置、目标和计数进度；检查与实际波形均不能互相替代。
++
++仅 CH340 + 分析仪无法读取内部软件断言结果；提前停波或没有预定序列均应记 FAIL/待排查，完整序列后低电平也不能单独证明三个拒绝断言全部通过。相关 H 项可标注“波形部分完成，内部证据 NOT_RUN”，不可把自动脚本视为 H01–H10 全部验收，H10 更不得复用自动固件。
+ 
+ ## 邮箱操作：一次一个命令，每次主动提交
+ 
+@@ -50,6 +128,6 @@ H08/H09 主动切断可能截短最后一个高脉冲，这是即时关闭的必
+ 
+ 出现意外 PWM、错误映射、失去调试连接、超限波形、旧目标重放、碰撞或供电异常，立即停止并撤去舵机动力。调试链路/邮箱正常时可先 action=1；若已失联，不依赖软件停止。保存失败证据并报告，不继续扩大机械范围或调整容差凑通过。
+ 
+-结束时 Disable、断开舵机动力，把同一工程宏恢复为 `0`（或删除覆盖），重新构建并刷入默认禁止固件，复核 H01/H02；保存其真实哈希。不能只改源码就宣称设备已经恢复。
++结束时 Disable、断开舵机动力，把同一工程 `P1A_ACTUATOR_TEST_ENABLE` 与 `P1A_AUTOTEST_ENABLE` 均恢复为 `0`（或删除覆盖），重新构建并刷入默认禁止固件，复核 H01/H02；保存其真实哈希。不能只改源码就宣称设备已经恢复。
+ 
+ 记录使用 [test_plan.md](test_plan.md) 的完整模板；每项填 PASS / FAIL / NOT_RUN，并关联具体源码哈希、固件哈希、seq、CSV 与截图。P1a 未验收前不进入 P1b。
+diff --git a/doc/P1/C2_static_check.py b/doc/P1/C2_static_check.py
+index b3d8079..ecd369a 100644
+--- a/doc/P1/C2_static_check.py
++++ b/doc/P1/C2_static_check.py
+@@ -43,10 +43,19 @@ check(len(re.findall(r"^(?:bool|void) Actuator_\w+\(", driver, re.M)) == 6,
+ check(re.search(r"#define P1A_ACTUATOR_TEST_ENABLE 0\b",
+                 sources["App/p1a_test/p1a_test.h"]), "test default OFF")
+ test_source = sources["App/p1a_test/p1a_test.c"]
+-check("s_wait_count < 65536U" in test_source and
+-      "Actuator_ForceSafeOutput();" in test_source and
+-      "while (" not in test_source and "HAL_GetTick" not in test_source,
++mailbox_source = test_source.split("#if P1A_ACTUATOR_TEST_ENABLE", 1)[1]
++check("s_wait_count < 65536U" in mailbox_source and
++      "Actuator_ForceSafeOutput();" in mailbox_source and
++      "while (" not in mailbox_source and "HAL_GetTick" not in mailbox_source,
+       "boundary test is finite nonblocking polling and faults closed without Tick")
++check("#define P1A_AUTOTEST_ENABLE 0" in sources["App/p1a_test/p1a_test.h"] and
++      "#if P1A_AUTOTEST_ENABLE && P1A_ACTUATOR_TEST_ENABLE" in sources["App/p1a_test/p1a_test.h"],
++      "automatic test default OFF; mailbox mutually exclusive")
++auto_source = test_source.split("#if P1A_ACTUATOR_TEST_ENABLE", 1)[0]
++check(not re.search(r"(?:TIM3|GPIOC|AFIO)->\w+\s*(?:=(?!=)|\|=|&=)", auto_source) and
++      "HAL_Delay(" not in auto_source and "__WFI(" not in auto_source and
++      "poll < AUTO_POLL_BUDGET" in auto_source,
++      "automatic test owns no PWM register writes; finite active waits")
+ check(body(main, "main").lstrip().startswith("/* First action") and
+       body(main, "main").index("P1a_ForceSafeOutput();") < body(main, "main").index("HAL_Init()"),
+       "cold-start raw shutdown precedes HAL")
+@@ -132,4 +141,4 @@ check(all(not line.rstrip("\r\n").endswith((" ", "\t"))
+       "new and existing source files have no trailing whitespace")
+ for path in SOURCE_PATHS + ["Projects/RTnode.uvprojx", "Projects/RTnode.uvoptx"]:
+     print("SHA256 " + path + ": " + sha256((ROOT / path).read_bytes()).hexdigest())
+-print("S03 Build/Link: NOT_RUN (user instruction). H01-H10: NOT_RUN (user hardware).")
++print("S03 Build/Link: separate compiler validation required. H01-H10: NOT_RUN (user hardware).")
+diff --git a/doc/P1/codex_tasks.md b/doc/P1/codex_tasks.md
+index 40c3ccd..e47fdce 100644
+--- a/doc/P1/codex_tasks.md
++++ b/doc/P1/codex_tasks.md
+@@ -15,7 +15,7 @@
+ 
+ **C1 可直接复制启动提示词：**
+ 
+-> 你是 RT-Node F103 P1a 的 Codex C1。先阅读仓库根目录适用的 AGENTS.md（若存在）及 `P01a_actuator_safety_codex_package/` 中的 README.md、requirements.md、design.md、interfaces.md、implementation_plan.md、test_plan.md；仅执行 C1。用户本地 `Projects/RTnode.uvprojx` 已存在且确认为正确单一 Keil 工程，先使用它，不另建工程，不把其未上传 GitHub 当作错误。先检查实际 HEAD 与工作区，再最小化完成安全启动和旧依赖清理；有构建条件则使用 Keil ARMCC5 编译，记录真实日志/MAP。不得执行 C2、修改旧仓库、推送或覆盖用户文件。遇到硬件/冻结约束冲突立即暂停。结束时提交 diff、证据、未运行项和 C2 前置判断。
++> 你是 RT-Node F103 P1a 的 Codex C1。先阅读仓库根目录适用的 AGENTS.md（若存在）及 `doc/P1/` 中的 README.md、requirements.md、design.md、interfaces.md、implementation_plan.md、test_plan.md；仅执行 C1。用户本地 `Projects/RTnode.uvprojx` 已存在且确认为正确单一 Keil 工程，先使用它，不另建工程，不把其未上传 GitHub 当作错误。先检查实际 HEAD 与工作区，再最小化完成安全启动和旧依赖清理；不要使用 Keil ARMCC5 编译，我会负责编译测试，记录真实日志/MAP。不得执行 C2、修改旧仓库、推送或覆盖用户文件。遇到硬件/冻结约束冲突立即暂停。结束时提交 diff、证据、未运行项和 C2 前置判断。
+ 
+ ## C2：TIM3 执行器安全迁移
+ 
+@@ -28,7 +28,7 @@
+ 
+ **C2 可直接复制启动提示词：**
+ 
+-> 你是 RT-Node F103 P1a 的 Codex C2。先阅读根目录适用的 AGENTS.md（若存在）、`docs/P1` 的全部相关文档、C1 实际交付，以及旧 VisionArm-MCU 在固定参考 commit 下的 `App/actuator` 文件。只执行 `implementation_plan.md` 的 C2：保留已批准的单一 Keil 工程，局部迁移 actuator 六个 API 至 TIM3_CH1/PC6 与 CH2/PC7，全重映射、默认输出禁止、紧急关断、故障锁存、双轴安全限幅和恢复中位；测试入口默认关闭。审查 AFIO_MAPR 的 SWJ_CFG 写入风险及全部失败路径。编译并保存真实日志（若环境具备），整理给用户的 H01–H10 实测指导。不要修改旧仓库、不实现 P1b、不推送、不声称已经进行硬件测量。冲突先暂停报告。
++> 你是 RT-Node F103 P1a 的 Codex C2。先阅读根目录适用的 AGENTS.md（若存在）、`P01a_actuator_safety_codex_package/` 的全部相关文档、C1 实际交付，以及旧 VisionArm-MCU 在固定参考 commit 下的 `App/actuator` 文件。只执行 `implementation_plan.md` 的 C2：保留已批准的单一 Keil 工程，局部迁移 actuator 六个 API 至 TIM3_CH1/PC6 与 CH2/PC7，全重映射、默认输出禁止、紧急关断、故障锁存、双轴安全限幅和恢复中位；测试入口默认关闭。审查 AFIO_MAPR 的 SWJ_CFG 写入风险及全部失败路径。编译并保存真实日志（若环境具备），整理给用户的 H01–H10 实测指导。不要修改旧仓库、不实现 P1b、不推送、不声称已经进行硬件测量。冲突先暂停报告。
+ 
+ ## 最终集成/实机 Gate
+ 
+diff --git a/doc/P1/test_plan.md b/doc/P1/test_plan.md
+index e8d0abb..631d762 100644
+--- a/doc/P1/test_plan.md
++++ b/doc/P1/test_plan.md
+@@ -40,6 +40,8 @@
+ 
+ ## 4. 用户实机测试顺序（不可颠倒）
+ 
++仅有 CH340、没有 SWD 时，按 [C2_hardware_guide.md](C2_hardware_guide.md) 的单次自动脚本采波：CASE 1 覆盖 H03–H05 波形，CASE 2 覆盖 H06/H07 的指定输入，CASE 3 覆盖 H08/H09 波形及固件内部拒绝检查。默认禁止固件单独用于 H01/H02；CASE 选择不等于完整覆盖原表所有输入/重复次数。没有内部读回证据的项目、精确边界相位未覆盖的项目和 H10 均保留 NOT_RUN/PARTIAL，不得自动判全通过。自动固件只用于断开舵机信号和动力的无负载测试。
++
+ | ID | 测试及步骤 | 判据 | 留存证据 |
+ |---|---|---|---|
+ | H01 | 下载最小固件，舵机**不连接**，确认 main 到初始化/禁止状态 | 固件能运行，不自动使能 | 下载与调试记录、固件 SHA |

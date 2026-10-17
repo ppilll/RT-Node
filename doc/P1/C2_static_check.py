@@ -43,10 +43,19 @@ check(len(re.findall(r"^(?:bool|void) Actuator_\w+\(", driver, re.M)) == 6,
 check(re.search(r"#define P1A_ACTUATOR_TEST_ENABLE 0\b",
                 sources["App/p1a_test/p1a_test.h"]), "test default OFF")
 test_source = sources["App/p1a_test/p1a_test.c"]
-check("s_wait_count < 65536U" in test_source and
-      "Actuator_ForceSafeOutput();" in test_source and
-      "while (" not in test_source and "HAL_GetTick" not in test_source,
+mailbox_source = test_source.split("#if P1A_ACTUATOR_TEST_ENABLE", 1)[1]
+check("s_wait_count < 65536U" in mailbox_source and
+      "Actuator_ForceSafeOutput();" in mailbox_source and
+      "while (" not in mailbox_source and "HAL_GetTick" not in mailbox_source,
       "boundary test is finite nonblocking polling and faults closed without Tick")
+check("#define P1A_AUTOTEST_ENABLE 0" in sources["App/p1a_test/p1a_test.h"] and
+      "#if P1A_AUTOTEST_ENABLE && P1A_ACTUATOR_TEST_ENABLE" in sources["App/p1a_test/p1a_test.h"],
+      "automatic test default OFF; mailbox mutually exclusive")
+auto_source = test_source.split("#if P1A_ACTUATOR_TEST_ENABLE", 1)[0]
+check(not re.search(r"(?:TIM3|GPIOC|AFIO)->\w+\s*(?:=(?!=)|\|=|&=)", auto_source) and
+      "HAL_Delay(" not in auto_source and "__WFI(" not in auto_source and
+      "poll < AUTO_POLL_BUDGET" in auto_source,
+      "automatic test owns no PWM register writes; finite active waits")
 check(body(main, "main").lstrip().startswith("/* First action") and
       body(main, "main").index("P1a_ForceSafeOutput();") < body(main, "main").index("HAL_Init()"),
       "cold-start raw shutdown precedes HAL")
@@ -132,4 +141,4 @@ check(all(not line.rstrip("\r\n").endswith((" ", "\t"))
       "new and existing source files have no trailing whitespace")
 for path in SOURCE_PATHS + ["Projects/RTnode.uvprojx", "Projects/RTnode.uvoptx"]:
     print("SHA256 " + path + ": " + sha256((ROOT / path).read_bytes()).hexdigest())
-print("S03 Build/Link: NOT_RUN (user instruction). H01-H10: NOT_RUN (user hardware).")
+print("S03 Build/Link: separate compiler validation required. H01-H10: NOT_RUN (user hardware).")

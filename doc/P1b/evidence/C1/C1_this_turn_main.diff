@@ -1,0 +1,38 @@
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -21,6 +21,12 @@
+ #endif
+ #if TICK_INT_PRIORITY != configLIBRARY_LOWEST_INTERRUPT_PRIORITY
+ #error "HAL and FreeRTOS SysTick must use the same lowest priority"
++#endif
++#if (configSUPPORT_STATIC_ALLOCATION != 1) || (configSUPPORT_DYNAMIC_ALLOCATION != 0)
++#error "C1 requires static-only RTOS allocation"
++#endif
++#if (configUSE_TICKLESS_IDLE != 0) || (configUSE_TIMERS != 0)
++#error "C1 requires the shared periodic tick and no timer task"
+ #endif
+ 
+ #define CONTROL_STACK_WORDS 256U /* StackType_t words, not bytes. */
+@@ -118,7 +124,22 @@
+ static void ControlTask(void *argument)
+ {
+     TickType_t last_wake = xTaskGetTickCount();
++    ActuatorSnapshot initial_state;
+     (void)argument;
++
++    /* Check the actual first task context after SVC restored PSP/BASEPRI.
++     * These are fail-closed startup checks, not external timing evidence.
++     * GetSnapshot is read-only; C1 never enables or commands the actuator.
++     */
++    configASSERT(__get_IPSR() == 0U);
++    configASSERT(__get_PRIMASK() == 0U);
++    configASSERT(__get_BASEPRI() == 0U);
++    configASSERT(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
++    configASSERT(HAL_NVIC_GetPriorityGrouping() == NVIC_PRIORITYGROUP_4);
++    configASSERT(SysTick->LOAD == (SystemCoreClock / configTICK_RATE_HZ) - 1U);
++    Actuator_GetSnapshot(&initial_state);
++    configASSERT(initial_state.initialized && !initial_state.enabled &&
++                 !initial_state.fault_latched);
+ 
+     /* C1 placeholder only: no command source, Enable/Apply/Disable or GPIO.
+      * The 20-tick wait exercises blocking/context switches; it is not an

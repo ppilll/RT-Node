@@ -1,7 +1,24 @@
 #include "stm32f1xx_hal.h"
 #include "p1a_safety.h"
 #include "actuator.h"
-#include "../../App/p1a_test/p1a_test.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "../../App/control/control.h"
+#include "../../App/control/control_config.h"
+
+/* P1b test authorization and P1a exclusion live in control_config.h. */
+#if configTICK_RATE_HZ != 1000
+#error "C1 shared HAL/RTOS SysTick requires 1000 Hz"
+#endif
+#if TICK_INT_PRIORITY != configLIBRARY_LOWEST_INTERRUPT_PRIORITY
+#error "HAL and FreeRTOS SysTick must use the same lowest priority"
+#endif
+#if (configSUPPORT_STATIC_ALLOCATION != 1) || (configSUPPORT_DYNAMIC_ALLOCATION != 0)
+#error "C1 requires static-only RTOS allocation"
+#endif
+#if (configUSE_TICKLESS_IDLE != 0) || (configUSE_TIMERS != 0)
+#error "C1 requires the shared periodic tick and no timer task"
+#endif
 
 #if HSE_VALUE != 8000000U
 #error "P1a requires the confirmed 8 MHz HSE clock configuration"
@@ -67,15 +84,25 @@ int main(void)
     {
         P1a_FatalError();
     }
-    for (;;)
+    if (!Control_Init())
     {
-#if P1A_ACTUATOR_TEST_ENABLE
-        P1aTest_Poll();
-#else
-        /* Default image has no caller of Enable/Apply and no scheduler. */
-        __WFI();
-#endif
+        P1a_FatalError();
     }
+
+    /* End the HAL-owned startup timebase before the port restarts the SAME
+     * SysTick at 72 MHz / 1000. Clear any old pending tick so it cannot be
+     * mistaken for the first RTOS tick. No HAL delay follows this handoff.
+     * The reviewed RVDS port's prvStartFirstTask re-enables IRQs before SVC.
+     */
+    __disable_irq();
+    SysTick->CTRL = 0U;
+    SysTick->VAL = 0U;
+    SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
+    __DSB();
+    __ISB();
+    vTaskStartScheduler();
+    P1a_FatalError(); /* Idle creation/port failure or unexpected return. */
+    return 0;
 }
 
 static HAL_StatusTypeDef SystemClock_Config(void)

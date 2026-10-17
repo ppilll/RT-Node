@@ -1,0 +1,3 @@
+PASS: final source/guide hashes match inventory.
+PASS: C2-only source patch reverse-check against final workspace.
+PASS: no patch was applied; check only.

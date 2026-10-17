@@ -1,0 +1,96 @@
+PASS: one Keil target
+PASS: ARMCC5 target
+PASS: ordinary project restored unarmed
+PASS: 18 unique source entries
+PASS: minimal kernel and unique CM3 port
+PASS: Core/Src/interrupts.c unchanged from entry
+PASS: Core/Src/freertos_static.c unchanged from entry
+PASS: Core/Src/rtos_hooks.c unchanged from entry
+PASS: Projects/RTnode.uvoptx unchanged from entry
+PASS: App/actuator/src/actuator.c unchanged from entry
+PASS: App/actuator/include/actuator.h unchanged from entry
+PASS: App/p1a_test/p1a_test.c unchanged from entry
+PASS: App/p1a_test/p1a_test.h unchanged from entry
+PASS: default real rebuild clean
+PASS: default actual vector: SVC_Handler
+PASS: default actual vector: PendSV_Handler
+PASS: default actual vector: SysTick_Handler
+PASS: default static allocation: s_control_tcb
+PASS: default static allocation: s_control_stack
+PASS: default static allocation: s_idle_tcb
+PASS: default static allocation: s_idle_stack
+PASS: default no dynamic allocation linked
+PASS: default expected test/output code: Actuator_Enable
+PASS: default expected test/output code: Actuator_Apply
+PASS: default expected test/output code: ControlSession_Authorize
+PASS: default expected test/output code: P1bTest_MakeCommand
+PASS: default binary extent equals ROM total
+PASS: case1 real rebuild clean
+PASS: case1 actual vector: SVC_Handler
+PASS: case1 actual vector: PendSV_Handler
+PASS: case1 actual vector: SysTick_Handler
+PASS: case1 static allocation: s_control_tcb
+PASS: case1 static allocation: s_control_stack
+PASS: case1 static allocation: s_idle_tcb
+PASS: case1 static allocation: s_idle_stack
+PASS: case1 no dynamic allocation linked
+PASS: case1 expected test/output code: Actuator_Enable
+PASS: case1 expected test/output code: Actuator_Apply
+PASS: case1 expected test/output code: ControlSession_Authorize
+PASS: case1 expected test/output code: P1bTest_MakeCommand
+PASS: case1 binary extent equals ROM total
+PASS: case2 real rebuild clean
+PASS: case2 actual vector: SVC_Handler
+PASS: case2 actual vector: PendSV_Handler
+PASS: case2 actual vector: SysTick_Handler
+PASS: case2 static allocation: s_control_tcb
+PASS: case2 static allocation: s_control_stack
+PASS: case2 static allocation: s_idle_tcb
+PASS: case2 static allocation: s_idle_stack
+PASS: case2 no dynamic allocation linked
+PASS: case2 expected test/output code: Actuator_Enable
+PASS: case2 expected test/output code: Actuator_Apply
+PASS: case2 expected test/output code: ControlSession_Authorize
+PASS: case2 expected test/output code: P1bTest_MakeCommand
+PASS: case2 binary extent equals ROM total
+PASS: case3 real rebuild clean
+PASS: case3 actual vector: SVC_Handler
+PASS: case3 actual vector: PendSV_Handler
+PASS: case3 actual vector: SysTick_Handler
+PASS: case3 static allocation: s_control_tcb
+PASS: case3 static allocation: s_control_stack
+PASS: case3 static allocation: s_idle_tcb
+PASS: case3 static allocation: s_idle_stack
+PASS: case3 no dynamic allocation linked
+PASS: case3 expected test/output code: Actuator_Enable
+PASS: case3 expected test/output code: Actuator_Apply
+PASS: case3 expected test/output code: ControlSession_Authorize
+PASS: case3 expected test/output code: P1bTest_MakeCommand
+PASS: case3 binary extent equals ROM total
+PASS: case4 real rebuild clean
+PASS: case4 actual vector: SVC_Handler
+PASS: case4 actual vector: PendSV_Handler
+PASS: case4 actual vector: SysTick_Handler
+PASS: case4 static allocation: s_control_tcb
+PASS: case4 static allocation: s_control_stack
+PASS: case4 static allocation: s_idle_tcb
+PASS: case4 static allocation: s_idle_stack
+PASS: case4 no dynamic allocation linked
+PASS: case4 expected test/output code: Actuator_Enable
+PASS: case4 expected test/output code: Actuator_Apply
+PASS: case4 expected test/output code: ControlSession_Authorize
+PASS: case4 expected test/output code: P1bTest_MakeCommand
+PASS: case4 binary extent equals ROM total
+PASS: ordinary Projects/RTnode.hex is the default image
+PASS: ARMCC rejects enable_only
+PASS: ARMCC rejects ack_without_key
+PASS: ARMCC rejects bad_key
+PASS: ARMCC rejects invalid_enable
+PASS: ARMCC rejects invalid_case
+PASS: ARMCC rejects unarmed_stale_key
+PASS: ARMCC rejects unarmed_stale_case
+PASS: ARMCC rejects unapproved_trace
+PASS: ARMCC rejects p1a_auto
+PASS: ARMCC rejects p1a_mailbox
+PASS: ARMCC rejects mixed_p1a_p1b
+Board execution, real timing and real stack residual: NOT_RUN (no trace approved).

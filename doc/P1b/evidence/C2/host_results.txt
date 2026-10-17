@@ -1,0 +1,17 @@
+PASS: real controller case=1 scenario=nominal enables=0 applies=0 fault=0 terminal-safe
+PASS: real controller case=1 scenario=rollover enables=0 applies=0 fault=0 terminal-safe
+PASS: real controller case=1 scenario=no_counter enables=0 applies=0 fault=9 terminal-safe
+PASS: static task creation failure, no output
+PASS: real controller case=1 scenario=nominal enables=1 applies=1398 fault=0 terminal-safe
+PASS: real controller case=1 scenario=rollover enables=1 applies=1398 fault=0 terminal-safe
+PASS: real controller case=1 scenario=no_counter enables=0 applies=0 fault=9 terminal-safe
+PASS: static task creation failure, no output
+PASS: real controller case=1 scenario=no_wait enables=1 applies=199 fault=7 terminal-safe
+PASS: real controller case=1 scenario=external_fault enables=1 applies=198 fault=10 terminal-safe
+PASS: real controller case=1 scenario=refuse_enable enables=1 applies=0 fault=6 terminal-safe
+PASS: real controller case=1 scenario=refuse_apply enables=1 applies=1 fault=6 terminal-safe
+PASS: real controller case=2 scenario=nominal enables=1 applies=198 fault=4 terminal-safe
+PASS: real controller case=3 scenario=nominal enables=1 applies=198 fault=7 terminal-safe
+PASS: real controller case=4 scenario=nominal enables=1 applies=199 fault=8 terminal-safe
+PASS: policy authorization, TTL/generation boundaries, wraps, ranges, terminal replay
+PASS: host C execution only. Hardware timing, PWM and stack residual NOT_RUN.

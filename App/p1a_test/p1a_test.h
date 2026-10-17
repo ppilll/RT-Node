@@ -9,6 +9,29 @@
 #error "P1A_ACTUATOR_TEST_ENABLE must be 0 or 1"
 #endif
 
+#ifndef P1A_AUTOTEST_ENABLE
+#define P1A_AUTOTEST_ENABLE 0
+#endif
+#ifndef P1A_AUTOTEST_CASE
+#define P1A_AUTOTEST_CASE 1
+#endif
+#if (P1A_AUTOTEST_ENABLE != 0) && (P1A_AUTOTEST_ENABLE != 1)
+#error "P1A_AUTOTEST_ENABLE must be 0 or 1"
+#endif
+#if P1A_AUTOTEST_ENABLE && P1A_ACTUATOR_TEST_ENABLE
+#error "Automatic test and RAM mailbox must not be enabled together"
+#endif
+#if (P1A_AUTOTEST_CASE < 1) || (P1A_AUTOTEST_CASE > 3)
+#error "P1A_AUTOTEST_CASE must be 1, 2 or 3"
+#endif
+
+#if P1A_AUTOTEST_ENABLE
+/* Unloaded waveform test ONLY: disconnect servo signals AND power.
+ * Called once after InitSafe; returns disabled on success, fatal on failure.
+ */
+void P1aAutotest_Run(void);
+#endif
+
 #if P1A_ACTUATOR_TEST_ENABLE
 #include "actuator.h"
 

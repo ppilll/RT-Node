@@ -1,0 +1,719 @@
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -3,19 +3,10 @@
+ #include "actuator.h"
+ #include "FreeRTOS.h"
+ #include "task.h"
+-#include "../../App/p1a_test/p1a_test.h"
++#include "../../App/control/control.h"
++#include "../../App/control/control_config.h"
+ 
+-/* C1 is always a no-output scheduler image. Keep P1a sources unchanged,
+- * but reject accidental reuse of the previous waveform-test build flags. */
+-#if P1A_AUTOTEST_ENABLE || P1A_ACTUATOR_TEST_ENABLE
+-#error "C1 requires both P1a test modes OFF"
+-#endif
+-#ifndef P1B_AUTOTEST_ENABLE
+-#define P1B_AUTOTEST_ENABLE 0
+-#endif
+-#if P1B_AUTOTEST_ENABLE != 0
+-#error "C1 has no P1b output test; P1B_AUTOTEST_ENABLE must be 0"
+-#endif
++/* P1b test authorization and P1a exclusion live in control_config.h. */
+ #if configTICK_RATE_HZ != 1000
+ #error "C1 shared HAL/RTOS SysTick requires 1000 Hz"
+ #endif
+@@ -28,11 +19,6 @@
+ #if (configUSE_TICKLESS_IDLE != 0) || (configUSE_TIMERS != 0)
+ #error "C1 requires the shared periodic tick and no timer task"
+ #endif
+-
+-#define CONTROL_STACK_WORDS 256U /* StackType_t words, not bytes. */
+-static StaticTask_t s_control_tcb;
+-static StackType_t s_control_stack[CONTROL_STACK_WORDS];
+-static void ControlTask(void *argument);
+ 
+ #if HSE_VALUE != 8000000U
+ #error "P1a requires the confirmed 8 MHz HSE clock configuration"
+@@ -98,9 +84,7 @@
+     {
+         P1a_FatalError();
+     }
+-    if (xTaskCreateStatic(ControlTask, "ControlTask", CONTROL_STACK_WORDS,
+-                          NULL, tskIDLE_PRIORITY + 1U, s_control_stack,
+-                          &s_control_tcb) == NULL)
++    if (!Control_Init())
+     {
+         P1a_FatalError();
+     }
+@@ -119,36 +103,6 @@
+     vTaskStartScheduler();
+     P1a_FatalError(); /* Idle creation/port failure or unexpected return. */
+     return 0;
+-}
+-
+-static void ControlTask(void *argument)
+-{
+-    TickType_t last_wake = xTaskGetTickCount();
+-    ActuatorSnapshot initial_state;
+-    (void)argument;
+-
+-    /* Check the actual first task context after SVC restored PSP/BASEPRI.
+-     * These are fail-closed startup checks, not external timing evidence.
+-     * GetSnapshot is read-only; C1 never enables or commands the actuator.
+-     */
+-    configASSERT(__get_IPSR() == 0U);
+-    configASSERT(__get_PRIMASK() == 0U);
+-    configASSERT(__get_BASEPRI() == 0U);
+-    configASSERT(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
+-    configASSERT(HAL_NVIC_GetPriorityGrouping() == NVIC_PRIORITYGROUP_4);
+-    configASSERT(SysTick->LOAD == (SystemCoreClock / configTICK_RATE_HZ) - 1U);
+-    Actuator_GetSnapshot(&initial_state);
+-    configASSERT(initial_state.initialized && !initial_state.enabled &&
+-                 !initial_state.fault_latched);
+-
+-    /* C1 placeholder only: no command source, Enable/Apply/Disable or GPIO.
+-     * The 20-tick wait exercises blocking/context switches; it is not an
+-     * externally measured 20 ms control-loop acceptance result.
+-     */
+-    for (;;)
+-    {
+-        (void)xTaskDelayUntil(&last_wake, pdMS_TO_TICKS(20U));
+-    }
+ }
+ 
+ static HAL_StatusTypeDef SystemClock_Config(void)
+diff --git a/Core/Inc/FreeRTOSConfig.h b/Core/Inc/FreeRTOSConfig.h
+--- a/Core/Inc/FreeRTOSConfig.h
++++ b/Core/Inc/FreeRTOSConfig.h
+@@ -14,7 +14,7 @@
+ // #define configSYSTICK_CLOCK_HZ                          (configCPU_CLOCK_HZ / 8)
+ #define configTICK_RATE_HZ                              1000
+ 
+-/* C1 uses Idle=0 and the no-output ControlTask=1. */
++/* Idle=0, sole actuator ControlTask=1. */
+ #define configMAX_PRIORITIES                            6
+ #define configMINIMAL_STACK_SIZE                        128
+ #define configMAX_TASK_NAME_LEN                         12
+@@ -69,7 +69,7 @@
+ #define INCLUDE_xTaskGetSchedulerState                  1
+ #define INCLUDE_xTaskGetCurrentTaskHandle               1
+ #define INCLUDE_uxTaskGetStackHighWaterMark             1
+-#define INCLUDE_xTaskGetIdleTaskHandle                  0
++#define INCLUDE_xTaskGetIdleTaskHandle                  1
+ #define INCLUDE_eTaskGetState                           0
+ #define INCLUDE_xEventGroupSetBitFromISR                0
+ #define INCLUDE_xTimerPendFunctionCall                  0
+diff --git a/Projects/RTnode.uvprojx b/Projects/RTnode.uvprojx
+--- a/Projects/RTnode.uvprojx
++++ b/Projects/RTnode.uvprojx
+@@ -471,6 +471,26 @@
+           </Files>
+         </Group>
+         <Group>
++          <GroupName>Control</GroupName>
++          <Files>
++            <File>
++              <FileName>control.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\control\control.c</FilePath>
++            </File>
++            <File>
++              <FileName>control_policy.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\control\control_policy.c</FilePath>
++            </File>
++            <File>
++              <FileName>p1b_test.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\p1b_test\p1b_test.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
+           <GroupName>FreeRTOS</GroupName>
+           <Files>
+             <File>
+diff --git a/App/control/control.c b/App/control/control.c
+new file mode 100644
+--- /dev/null
++++ b/App/control/control.c
+@@ -0,0 +1,255 @@
++#include "control.h"
++#include "control_config.h"
++#include "../p1b_test/p1b_test.h"
++#include "../actuator/include/actuator.h"
++#include "stm32f1xx_hal.h"
++#include <stddef.h>
++
++#if (configTICK_RATE_HZ != 1000) || (configUSE_16_BIT_TICKS != 0)
++#error "Control snapshots require 32-bit, 1 kHz RTOS ticks"
++#endif
++#if (configSUPPORT_STATIC_ALLOCATION != 1) || (configSUPPORT_DYNAMIC_ALLOCATION != 0)
++#error "ControlTask requires static-only RTOS allocation"
++#endif
++
++#define CYCLES_PER_US 72U
++#define CYCLES_PER_TICK 72000U
++typedef char TickWidthMustBe32[(sizeof(TickType_t) == sizeof(uint32_t)) ? 1 : -1];
++
++static StaticTask_t s_control_tcb;
++static StackType_t s_control_stack[CONTROL_STACK_WORDS];
++static TaskHandle_t s_control_handle;
++static volatile ControlDiagnostics s_diagnostics;
++static void ControlTask(void *argument);
++
++bool Control_Init(void)
++{
++    if (s_control_handle != NULL) { return false; }
++    s_control_handle = xTaskCreateStatic(ControlTask, "ControlTask", CONTROL_STACK_WORDS,
++                                        NULL, tskIDLE_PRIORITY + 1U,
++                                        s_control_stack, &s_control_tcb);
++    return s_control_handle != NULL;
++}
++
++void Control_GetDiagnostics(ControlDiagnostics *out)
++{
++    if (out == NULL) { return; }
++    configASSERT(__get_IPSR() == 0U);
++    taskENTER_CRITICAL();
++    *out = s_diagnostics;
++    taskEXIT_CRITICAL();
++}
++
++static void Stop(ControlSession *session, ControlFault reason)
++{
++    /* Hardware first. A normal finite test end does not invent a fault.
++     * Every error latches in the existing driver, before touching diagnostics.
++     */
++    if (reason == CONTROL_FAULT_NONE) { Actuator_Disable(); }
++    else { Actuator_ForceSafeOutput(); }
++    ControlSession_Close(session, reason);
++    s_diagnostics.mode = (reason == CONTROL_FAULT_NONE) ? CONTROL_COMPLETE : CONTROL_FAULT;
++    s_diagnostics.fault = session->fault;
++    s_diagnostics.generation_fence = session->last_generation;
++}
++
++static bool StartCycleCounter(void)
++{
++    uint32_t before;
++    uint32_t n;
++    if ((DWT->CTRL & DWT_CTRL_NOCYCCNT_Msk) != 0U) { return false; }
++    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
++    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
++    __DSB();
++    __ISB();
++    before = DWT->CYCCNT;
++    for (n = 0U; n < 128U; n++) { __NOP(); }
++    return ((DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) != 0U) && (DWT->CYCCNT != before);
++}
++
++static void SampleStack(void)
++{
++    UBaseType_t control = uxTaskGetStackHighWaterMark(NULL);
++    UBaseType_t idle = uxTaskGetStackHighWaterMark(xTaskGetIdleTaskHandle());
++    if (control < s_diagnostics.min_control_stack_words)
++    {
++        s_diagnostics.min_control_stack_words = control;
++    }
++    if (idle < s_diagnostics.min_idle_stack_words)
++    {
++        s_diagnostics.min_idle_stack_words = idle;
++    }
++}
++
++#if P1B_AUTOTEST_ENABLE
++static bool Accept(ControlSession *session, const ControlCommandSnapshot *command,
++                   TickType_t now)
++{
++    if (!ControlSession_Accept(session, command, now))
++    {
++        Stop(session, session->fault);
++        return false;
++    }
++    s_diagnostics.last_accepted_generation = command->generation;
++    s_diagnostics.generation_fence = session->last_generation;
++    s_diagnostics.accepted_count++;
++    return true;
++}
++#endif
++
++static void ControlTask(void *argument)
++{
++    ControlSession session = {0};
++    ActuatorSnapshot state;
++    TickType_t last_wake = xTaskGetTickCount();
++    TickType_t previous_wake = last_wake;
++    uint32_t previous_cycle = 0U;
++    bool has_previous = false;
++#if P1B_AUTOTEST_ENABLE
++    TickType_t boot_tick = last_wake;
++    TickType_t enabled_tick = 0U;
++    uint32_t enabled_cycle = 0U;
++    uint32_t step = 0U;
++    ControlCommandSnapshot command;
++    ActuatorCommand actuator_command;
++    ActuatorApplyResult result;
++#endif
++    (void)argument;
++
++    /* Retain the reviewed C1 first-task checks after SVC restores PSP/BASEPRI. */
++    configASSERT(__get_IPSR() == 0U);
++    configASSERT(__get_PRIMASK() == 0U);
++    configASSERT(__get_BASEPRI() == 0U);
++    configASSERT(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
++    configASSERT(HAL_NVIC_GetPriorityGrouping() == NVIC_PRIORITYGROUP_4);
++    configASSERT(SystemCoreClock == 72000000U);
++    configASSERT(SysTick->LOAD == (SystemCoreClock / configTICK_RATE_HZ) - 1U);
++    Actuator_GetSnapshot(&state);
++    configASSERT(state.initialized && !state.enabled && !state.fault_latched);
++    s_diagnostics.min_control_stack_words = CONTROL_STACK_WORDS;
++    s_diagnostics.min_idle_stack_words = configMINIMAL_STACK_SIZE;
++#if P1B_AUTOTEST_ENABLE
++    s_diagnostics.mode = CONTROL_PRESTART;
++#endif
++    if (!StartCycleCounter()) { Stop(&session, CONTROL_FAULT_CLOCK); }
++    /* Counter initialization is before the first scheduling epoch. */
++    last_wake = xTaskGetTickCount();
++    previous_wake = last_wake;
++
++    for (;;)
++    {
++        uint32_t entry_cycle = DWT->CYCCNT;
++        TickType_t now;
++        uint32_t elapsed_cycles;
++        uint32_t period;
++#if P1B_AUTOTEST_ENABLE
++        if (!session.terminal && session.authorized)
++        {
++            P1bTest_InjectLateWake(step);
++        }
++#endif
++        now = xTaskGetTickCount();
++        period = (uint32_t)(now - previous_wake);
++        s_diagnostics.wake_count++;
++        s_diagnostics.last_period_ticks = has_previous ? period : 0U;
++        if (!session.terminal)
++        {
++            if (((TickType_t)(now - last_wake) > CONTROL_MAX_LATE_TICKS) ||
++                (has_previous && ((period < 19U) || (period > 21U))))
++            {
++                s_diagnostics.late_count++;
++                Stop(&session, CONTROL_FAULT_DEADLINE);
++            }
++            else if (has_previous &&
++                (((uint32_t)(entry_cycle - previous_cycle) < (period - 2U) * CYCLES_PER_TICK) ||
++                 ((uint32_t)(entry_cycle - previous_cycle) > (period + 2U) * CYCLES_PER_TICK)))
++            {
++                Stop(&session, CONTROL_FAULT_CLOCK);
++            }
++            else if ((DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) == 0U)
++            {
++                Stop(&session, CONTROL_FAULT_CLOCK);
++            }
++            else
++            {
++                Actuator_GetSnapshot(&state);
++                if (state.fault_latched) { Stop(&session, CONTROL_FAULT_EXTERNAL); }
++            }
++        }
++
++#if P1B_AUTOTEST_ENABLE
++        if (!session.terminal && (s_diagnostics.mode == CONTROL_PRESTART) &&
++            ((TickType_t)(now - boot_tick) >= CONTROL_PRESTART_TICKS))
++        {
++            if (!ControlSession_Authorize(&session)) { Stop(&session, CONTROL_FAULT_MODE); }
++            else
++            {
++                P1bTest_MakeCommand(step, now, &command);
++                if (Accept(&session, &command, now))
++                {
++                    if (!Actuator_Enable()) { Stop(&session, CONTROL_FAULT_DRIVER); }
++                    else
++                    {
++                        enabled_tick = xTaskGetTickCount();
++                        enabled_cycle = DWT->CYCCNT;
++                        s_diagnostics.mode = CONTROL_PRIMING;
++                        step++;
++                    }
++                }
++            }
++        }
++        else if (!session.terminal && session.authorized)
++        {
++            if (step >= P1B_TEST_ACTIVE_STEPS) { Stop(&session, CONTROL_FAULT_NONE); }
++            else
++            {
++                P1bTest_MakeCommand(step, now, &command);
++                if (Accept(&session, &command, now))
++                {
++                    /* >=40 actual ms, checked with both clocks, before Apply.
++                     * No TIM3 access here. The driver still rejects missing UIF.
++                     */
++                    if (((TickType_t)(now - enabled_tick) >= CONTROL_PRIMING_TICKS) &&
++                        ((uint32_t)(DWT->CYCCNT - enabled_cycle) >=
++                         CONTROL_PRIMING_TICKS * CYCLES_PER_TICK))
++                    {
++                        s_diagnostics.mode = CONTROL_TEST;
++                        actuator_command.pan_position_us = command.pan_us;
++                        actuator_command.tilt_position_us = command.tilt_us;
++                        if (!Actuator_Apply(&actuator_command, &result))
++                        {
++                            Stop(&session, CONTROL_FAULT_DRIVER);
++                        }
++                        else { s_diagnostics.applied_count++; }
++                    }
++                    P1bTest_InjectExecution(step);
++                    step++;
++                }
++            }
++        }
++#endif
++        SampleStack();
++        elapsed_cycles = DWT->CYCCNT - entry_cycle;
++        if (elapsed_cycles > s_diagnostics.worst_execution_cycles)
++        {
++            s_diagnostics.worst_execution_cycles = elapsed_cycles;
++        }
++        if (!session.terminal && (elapsed_cycles >= CONTROL_EXECUTION_US * CYCLES_PER_US))
++        {
++            Stop(&session, CONTROL_FAULT_EXECUTION);
++        }
++        previous_wake = now;
++        previous_cycle = entry_cycle;
++        has_previous = true;
++        if (xTaskDelayUntil(&last_wake, CONTROL_PERIOD_TICKS) == pdFALSE)
++        {
++            if (!session.terminal)
++            {
++                s_diagnostics.late_count++;
++                Stop(&session, CONTROL_FAULT_DEADLINE);
++            }
++            /* Resynchronize only AFTER terminal shutdown; no control catch-up. */
++            last_wake = xTaskGetTickCount();
++        }
++    }
++}
+diff --git a/App/control/control.h b/App/control/control.h
+new file mode 100644
+--- /dev/null
++++ b/App/control/control.h
+@@ -0,0 +1,35 @@
++#ifndef RT_NODE_CONTROL_H
++#define RT_NODE_CONTROL_H
++
++#include "FreeRTOS.h"
++#include "task.h"
++#include "control_policy.h"
++
++typedef enum
++{
++    CONTROL_DISABLED = 0, CONTROL_PRESTART, CONTROL_PRIMING,
++    CONTROL_TEST, CONTROL_COMPLETE, CONTROL_FAULT
++} ControlMode;
++
++typedef struct
++{
++    ControlMode mode;
++    ControlFault fault;
++    uint32_t wake_count;
++    uint32_t late_count;
++    uint32_t last_period_ticks;
++    uint32_t worst_execution_cycles;
++    uint32_t min_control_stack_words;
++    uint32_t min_idle_stack_words;
++    uint32_t last_accepted_generation;
++    uint32_t generation_fence;
++    uint32_t accepted_count;
++    uint32_t applied_count;
++} ControlDiagnostics;
++
++/* Main calls once after Actuator_InitSafe. Static allocation only, no output. */
++bool Control_Init(void);
++/* Task-context read-only copy. No UART/mailbox or output authorization. */
++void Control_GetDiagnostics(ControlDiagnostics *out);
++
++#endif
+diff --git a/App/control/control_config.h b/App/control/control_config.h
+new file mode 100644
+--- /dev/null
++++ b/App/control/control_config.h
+@@ -0,0 +1,51 @@
++#ifndef RT_NODE_CONTROL_CONFIG_H
++#define RT_NODE_CONTROL_CONFIG_H
++
++#include "../p1a_test/p1a_test.h"
++
++#ifndef P1B_AUTOTEST_ENABLE
++#define P1B_AUTOTEST_ENABLE 0
++#endif
++#ifndef P1B_AUTOTEST_CASE
++#define P1B_AUTOTEST_CASE 1
++#endif
++#ifndef P1B_UNLOADED_ACK
++#define P1B_UNLOADED_ACK 0
++#endif
++#ifndef P1B_TEST_ARM_KEY
++#define P1B_TEST_ARM_KEY 0UL
++#endif
++#ifndef P1B_TRACE_ENABLE
++#define P1B_TRACE_ENABLE 0
++#endif
++
++#if (P1B_AUTOTEST_ENABLE != 0) && (P1B_AUTOTEST_ENABLE != 1)
++#error "P1B_AUTOTEST_ENABLE must be 0 or 1"
++#endif
++#if P1A_AUTOTEST_ENABLE || P1A_ACTUATOR_TEST_ENABLE
++#error "P1b ControlTask requires both P1a test modes OFF"
++#endif
++#if (P1B_AUTOTEST_CASE < 1) || (P1B_AUTOTEST_CASE > 4)
++#error "P1B_AUTOTEST_CASE must be 1..4"
++#endif
++#if P1B_AUTOTEST_ENABLE
++#if (P1B_UNLOADED_ACK != 1) || (P1B_TEST_ARM_KEY != 0xC2201500UL)
++#error "P1b output test requires unloaded acknowledgement and explicit arm key"
++#endif
++#elif (P1B_UNLOADED_ACK != 0) || (P1B_TEST_ARM_KEY != 0) || (P1B_AUTOTEST_CASE != 1)
++#error "Production image must not retain P1b test authorization"
++#endif
++#if P1B_TRACE_ENABLE != 0
++#error "No trace GPIO or diagnostic channel is approved for this C2 delivery"
++#endif
++
++#define CONTROL_PERIOD_TICKS       20U
++#define CONTROL_MAX_TTL_TICKS      100U
++#define CONTROL_TEST_TTL_TICKS     40U
++#define CONTROL_PRESTART_TICKS     2000U
++#define CONTROL_PRIMING_TICKS      40U
++#define CONTROL_MAX_LATE_TICKS     1U
++#define CONTROL_EXECUTION_US       2000U
++#define CONTROL_STACK_WORDS        256U
++
++#endif
+diff --git a/App/control/control_policy.c b/App/control/control_policy.c
+new file mode 100644
+--- /dev/null
++++ b/App/control/control_policy.c
+@@ -0,0 +1,63 @@
++#include "control_policy.h"
++#include "control_config.h"
++#include "../actuator/include/actuator.h"
++#include <stddef.h>
++
++void ControlSession_Close(ControlSession *session, ControlFault fault)
++{
++    session->authorized = false;
++    session->terminal = true;
++    if (session->fault == CONTROL_FAULT_NONE) { session->fault = fault; }
++}
++
++bool ControlSession_Authorize(ControlSession *session)
++{
++    if (session->authorization_used || session->terminal) { return false; }
++    session->authorization_used = true;
++    session->authorized = true;
++    return true;
++}
++
++bool ControlSession_Accept(ControlSession *session,
++                           const ControlCommandSnapshot *command, uint32_t now)
++{
++    uint32_t delta;
++    if (session->terminal) { return false; }
++    if (!session->authorized)
++    {
++        ControlSession_Close(session, CONTROL_FAULT_MODE);
++        return false;
++    }
++    if (command == NULL)
++    {
++        ControlSession_Close(session, CONTROL_FAULT_COMMAND);
++        return false;
++    }
++    delta = command->generation - session->last_generation;
++    if (session->has_generation && ((delta == 0U) || (delta >= 0x80000000UL)))
++    {
++        ControlSession_Close(session, CONTROL_FAULT_GENERATION);
++        return false;
++    }
++    /* Consume even a rejected new generation. A later close never rewinds it. */
++    session->last_generation = command->generation;
++    session->has_generation = true;
++    if ((command->source != CONTROL_SOURCE_TEST) || !command->valid ||
++        (command->ttl_ticks == 0U) || (command->ttl_ticks > CONTROL_MAX_TTL_TICKS))
++    {
++        ControlSession_Close(session, CONTROL_FAULT_COMMAND);
++    }
++    else if ((uint32_t)(now - command->issued_tick) >= command->ttl_ticks)
++    {
++        /* Unsigned modulo subtraction also rejects a future timestamp. */
++        ControlSession_Close(session, CONTROL_FAULT_EXPIRED);
++    }
++    else if ((command->pan_us < (int32_t)ACTUATOR_PAN_SAFE_MIN_US) ||
++             (command->pan_us > (int32_t)ACTUATOR_PAN_SAFE_MAX_US) ||
++             (command->tilt_us < (int32_t)ACTUATOR_TILT_SAFE_MIN_US) ||
++             (command->tilt_us > (int32_t)ACTUATOR_TILT_SAFE_MAX_US))
++    {
++        ControlSession_Close(session, CONTROL_FAULT_RANGE);
++    }
++    return !session->terminal;
++}
+diff --git a/App/control/control_policy.h b/App/control/control_policy.h
+new file mode 100644
+--- /dev/null
++++ b/App/control/control_policy.h
+@@ -0,0 +1,57 @@
++#ifndef RT_NODE_CONTROL_POLICY_H
++#define RT_NODE_CONTROL_POLICY_H
++
++#include <stdbool.h>
++#include <stdint.h>
++
++typedef enum { CONTROL_SOURCE_NONE = 0, CONTROL_SOURCE_TEST = 1 } ControlSource;
++
++/* Fixed uint32_t ticks: this build requires a 32-bit, 1 kHz TickType_t.
++ * Only ControlTask constructs and consumes full local snapshots.
++ */
++typedef struct
++{
++    ControlSource source;
++    uint32_t generation;
++    uint32_t issued_tick;
++    uint32_t ttl_ticks;
++    bool valid;
++    int32_t pan_us;
++    int32_t tilt_us;
++} ControlCommandSnapshot;
++
++typedef enum
++{
++    CONTROL_FAULT_NONE = 0,
++    CONTROL_FAULT_MODE,
++    CONTROL_FAULT_COMMAND,
++    CONTROL_FAULT_GENERATION,
++    CONTROL_FAULT_EXPIRED,
++    CONTROL_FAULT_RANGE,
++    CONTROL_FAULT_DRIVER,
++    CONTROL_FAULT_DEADLINE,
++    CONTROL_FAULT_EXECUTION,
++    CONTROL_FAULT_CLOCK,
++    CONTROL_FAULT_EXTERNAL
++} ControlFault;
++
++/* Zero-initialized once at task entry; never reset to clear a fault.
++ * Authorization is consumed once per boot. Closing is terminal, even after
++ * successful test completion. There is deliberately no runtime rearm API.
++ */
++typedef struct
++{
++    bool authorized;
++    bool authorization_used;
++    bool terminal;
++    bool has_generation;
++    uint32_t last_generation;
++    ControlFault fault;
++} ControlSession;
++
++bool ControlSession_Authorize(ControlSession *session);
++bool ControlSession_Accept(ControlSession *session,
++                           const ControlCommandSnapshot *command, uint32_t now);
++void ControlSession_Close(ControlSession *session, ControlFault fault);
++
++#endif
+diff --git a/App/p1b_test/p1b_test.c b/App/p1b_test/p1b_test.c
+new file mode 100644
+--- /dev/null
++++ b/App/p1b_test/p1b_test.c
+@@ -0,0 +1,69 @@
++#include "p1b_test.h"
++
++#if P1B_AUTOTEST_ENABLE
++#include "FreeRTOS.h"
++#include "task.h"
++#include "stm32f1xx_hal.h"
++
++void P1bTest_MakeCommand(uint32_t step, uint32_t now, ControlCommandSnapshot *out)
++{
++    ControlCommandSnapshot command;
++    command.source = CONTROL_SOURCE_TEST;
++    command.generation = step + 1U;
++    command.issued_tick = now;
++    command.ttl_ticks = CONTROL_TEST_TTL_TICKS;
++    command.valid = true;
++    command.pan_us = 1500;
++    command.tilt_us = 1500;
++    switch (step / 200U)
++    {
++    case 1U: command.pan_us = 1450; break;
++    case 2U: command.pan_us = 1550; break;
++    case 4U: command.tilt_us = 1450; break;
++    case 5U: command.tilt_us = 1550; break;
++    default: break;
++    }
++#if P1B_AUTOTEST_CASE == 2
++    if (step == P1B_TEST_INJECT_STEP)
++    {
++        command.issued_tick = now - command.ttl_ticks; /* expiry boundary */
++    }
++#endif
++    *out = command; /* Complete local snapshot, no cross-task publication. */
++}
++
++void P1bTest_InjectLateWake(uint32_t step)
++{
++#if P1B_AUTOTEST_CASE == 3
++    if (step == P1B_TEST_INJECT_STEP)
++    {
++        TickType_t start = xTaskGetTickCount();
++        /* Deliberate task-only delay; next wake check must fault immediately.
++         * This is an unloaded fault injection, never a normal control wait.
++         */
++        (void)xTaskDelayUntil(&start, 40U);
++    }
++#else
++    (void)step;
++#endif
++}
++
++void P1bTest_InjectExecution(uint32_t step)
++{
++#if P1B_AUTOTEST_CASE == 4
++    if (step == P1B_TEST_INJECT_STEP)
++    {
++        uint32_t start = DWT->CYCCNT;
++        uint32_t poll;
++        for (poll = 0U; poll < 1000000U; poll++)
++        {
++            __NOP();
++            if ((uint32_t)(DWT->CYCCNT - start) >= 216000U) { break; }
++        }
++        /* Finite even if CYCCNT stalls; normal duration check faults closed. */
++    }
++#else
++    (void)step;
++#endif
++}
++#endif
+diff --git a/App/p1b_test/p1b_test.h b/App/p1b_test/p1b_test.h
+new file mode 100644
+--- /dev/null
++++ b/App/p1b_test/p1b_test.h
+@@ -0,0 +1,17 @@
++#ifndef RT_NODE_P1B_TEST_H
++#define RT_NODE_P1B_TEST_H
++
++#include "../control/control_config.h"
++#include "../control/control_policy.h"
++
++#define P1B_TEST_ACTIVE_STEPS 1400U
++#define P1B_TEST_INJECT_STEP  200U
++
++#if P1B_AUTOTEST_ENABLE
++/* Called ONLY by ControlTask. step is monotonic and bounded, no ISR/producer. */
++void P1bTest_MakeCommand(uint32_t step, uint32_t now, ControlCommandSnapshot *out);
++void P1bTest_InjectLateWake(uint32_t step);
++void P1bTest_InjectExecution(uint32_t step);
++#endif
++
++#endif

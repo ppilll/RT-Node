@@ -1,0 +1,80 @@
+ M App/p1a_test/p1a_test.c
+ M App/p1a_test/p1a_test.h
+ M Core/Inc/FreeRTOSConfig.h
+ M Core/Src/interrupts.c
+ M Core/Src/main.c
+ M Projects/RTnode.uvoptx
+ M Projects/RTnode.uvprojx
+ M doc/P1/C2_hardware_guide.md
+ M doc/P1/C2_static_check.py
+ M doc/P1/codex_tasks.md
+ M doc/P1/test_plan.md
+?? App/control/
+?? App/p1b_test/
+?? Core/Src/rtos_hooks.c
+?? Projects/Listings/
+?? Projects/Objects/
+?? Projects/RTnode.axf
+?? Projects/RTnode.build_log.htm
+?? Projects/RTnode.hex
+?? Projects/RTnode.htm
+?? Projects/RTnode.lnp
+?? Projects/RTnode.sct
+?? Projects/RTnode.uvguix.Liu
+?? "Projects/RTnode_Target 1.dep"
+?? Projects/actuator.crf
+?? Projects/actuator.d
+?? Projects/actuator.o
+?? Projects/control.crf
+?? Projects/control.d
+?? Projects/control.o
+?? Projects/control_policy.crf
+?? Projects/control_policy.d
+?? Projects/control_policy.o
+?? Projects/freertos_static.crf
+?? Projects/freertos_static.d
+?? Projects/freertos_static.o
+?? Projects/interrupts.crf
+?? Projects/interrupts.d
+?? Projects/interrupts.o
+?? Projects/list.crf
+?? Projects/list.d
+?? Projects/list.o
+?? Projects/main.crf
+?? Projects/main.d
+?? Projects/main.o
+?? Projects/p1a_test.crf
+?? Projects/p1a_test.d
+?? Projects/p1a_test.o
+?? Projects/p1b_test.crf
+?? Projects/p1b_test.d
+?? Projects/p1b_test.o
+?? Projects/port.crf
+?? Projects/port.d
+?? Projects/port.o
+?? Projects/rtos_hooks.crf
+?? Projects/rtos_hooks.d
+?? Projects/rtos_hooks.o
+?? Projects/startup_stm32f103xe.d
+?? Projects/startup_stm32f103xe.o
+?? Projects/stm32f1xx_hal.crf
+?? Projects/stm32f1xx_hal.d
+?? Projects/stm32f1xx_hal.o
+?? Projects/stm32f1xx_hal_cortex.crf
+?? Projects/stm32f1xx_hal_cortex.d
+?? Projects/stm32f1xx_hal_cortex.o
+?? Projects/stm32f1xx_hal_gpio.crf
+?? Projects/stm32f1xx_hal_gpio.d
+?? Projects/stm32f1xx_hal_gpio.o
+?? Projects/stm32f1xx_hal_rcc.crf
+?? Projects/stm32f1xx_hal_rcc.d
+?? Projects/stm32f1xx_hal_rcc.o
+?? Projects/system_stm32f1xx.crf
+?? Projects/system_stm32f1xx.d
+?? Projects/system_stm32f1xx.o
+?? Projects/tasks.crf
+?? Projects/tasks.d
+?? Projects/tasks.o
+?? doc/P1/P1a_autotest_check.py
+?? doc/P1/P1a_autotest_validation.md
+?? doc/P1b/

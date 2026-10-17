@@ -1,0 +1,311 @@
+[
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0",
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=nominal enables=0 applies=0 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0\\controller.exe",
+      "rollover"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=rollover enables=0 applies=0 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0\\controller.exe",
+      "no_counter"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=no_counter enables=0 applies=0 fault=9 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0\\controller.exe",
+      "create_fail"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\0",
+    "returncode": 0,
+    "stdout": "PASS: static task creation failure, no output\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=1",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=nominal enables=1 applies=1398 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "rollover"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=rollover enables=1 applies=1398 fault=0 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "no_counter"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=no_counter enables=0 applies=0 fault=9 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "create_fail"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: static task creation failure, no output\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "no_wait"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=no_wait enables=1 applies=199 fault=7 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "external_fault"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=external_fault enables=1 applies=198 fault=10 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "refuse_enable"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=refuse_enable enables=1 applies=0 fault=6 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1\\controller.exe",
+      "refuse_apply"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\1",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=1 scenario=refuse_apply enables=1 applies=1 fault=6 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=2",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\2",
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\2\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\2",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=2 scenario=nominal enables=1 applies=198 fault=4 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=3",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\3",
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\3\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\3",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=3 scenario=nominal enables=1 applies=198 fault=7 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/DP1B_AUTOTEST_ENABLE=1",
+      "/DP1B_UNLOADED_ACK=1",
+      "/DP1B_TEST_ARM_KEY=0xC2201500UL",
+      "/DP1B_AUTOTEST_CASE=4",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\p1b_test\\p1b_test.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\controller_host_test.c",
+      "/Fecontroller.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\4",
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\np1b_test.c\ncontroller_host_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\4\\controller.exe",
+      "nominal"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\4",
+    "returncode": 0,
+    "stdout": "PASS: real controller case=4 scenario=nominal enables=1 applies=199 fault=8 terminal-safe\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\policy_test.c",
+      "/Fepolicy.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host",
+    "returncode": 0,
+    "stdout": "control_policy.c\npolicy_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host\\policy.exe"
+    ],
+    "cwd": "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\evidence\\C2\\host",
+    "returncode": 0,
+    "stdout": "PASS: policy authorization, TTL/generation boundaries, wraps, ranges, terminal replay\n",
+    "stderr": ""
+  }
+]

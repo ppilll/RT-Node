@@ -14,7 +14,7 @@ void AppFatal_Assert(const char *file, int line);
 // #define configSYSTICK_CLOCK_HZ                          (configCPU_CLOCK_HZ / 8)
 #define configTICK_RATE_HZ                              1000
 
-/* Application priorities are 0, 2, 4 and 5. */
+/* Idle=0, sole actuator ControlTask=1. */
 #define configMAX_PRIORITIES                            6
 #define configMINIMAL_STACK_SIZE                        128
 #define configMAX_TASK_NAME_LEN                         12
@@ -26,7 +26,7 @@ void AppFatal_Assert(const char *file, int line);
 #define configTASK_NOTIFICATION_ARRAY_ENTRIES           1
 #define configUSE_MUTEXES                               0
 #define configUSE_RECURSIVE_MUTEXES                     0
-#define configUSE_COUNTING_SEMAPHORES                   1
+#define configUSE_COUNTING_SEMAPHORES                   0
 #define configUSE_ALTERNATIVE_API                       0
 #define configQUEUE_REGISTRY_SIZE                       0
 #define configUSE_QUEUE_SETS                            0
@@ -64,12 +64,12 @@ void AppFatal_Assert(const char *file, int line);
 #define INCLUDE_vTaskDelete                             0
 #define INCLUDE_vTaskSuspend                            0
 #define INCLUDE_xResumeFromISR                          0
-#define INCLUDE_vTaskDelayUntil                        1
+#define INCLUDE_xTaskDelayUntil                        1
 #define INCLUDE_vTaskDelay                              0
 #define INCLUDE_xTaskGetSchedulerState                  1
 #define INCLUDE_xTaskGetCurrentTaskHandle               1
-#define INCLUDE_uxTaskGetStackHighWaterMark             0
-#define INCLUDE_xTaskGetIdleTaskHandle                  0
+#define INCLUDE_uxTaskGetStackHighWaterMark             1
+#define INCLUDE_xTaskGetIdleTaskHandle                  1
 #define INCLUDE_eTaskGetState                           0
 #define INCLUDE_xEventGroupSetBitFromISR                0
 #define INCLUDE_xTimerPendFunctionCall                  0

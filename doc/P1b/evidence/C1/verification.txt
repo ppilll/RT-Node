@@ -1,0 +1,36 @@
+PASS: one Keil target
+PASS: ARMCC5 selected
+PASS: only tasks/list/RVDS ARM_CM3; no FreeRTOS heap or unused middleware
+PASS: SVC_Handler has one linked definition from port.o
+PASS: SVC_Handler binary vector points to that definition
+PASS: PendSV_Handler has one linked definition from port.o
+PASS: PendSV_Handler binary vector points to that definition
+PASS: SysTick_Handler has one linked definition from interrupts.o
+PASS: SysTick_Handler binary vector points to that definition
+PASS: s_control_tcb static SRAM allocation/size
+PASS: s_control_stack static SRAM allocation/size
+PASS: s_idle_tcb static SRAM allocation/size
+PASS: s_idle_stack static SRAM allocation/size
+PASS: Actuator_Enable absent from linked code
+PASS: Actuator_Apply absent from linked code
+PASS: Actuator_Disable absent from linked code
+PASS: pvPortMalloc absent from linked code
+PASS: vPortFree absent from linked code
+PASS: malloc absent from linked code
+PASS: calloc absent from linked code
+PASS: realloc absent from linked code
+PASS: free absent from linked code
+PASS: xTaskCreateStatic linked
+PASS: vTaskStartScheduler linked
+PASS: AppFatal_Assert linked
+PASS: vApplicationStackOverflowHook linked
+PASS: vApplicationGetIdleTaskMemory linked
+PASS: App\actuator\src\actuator.c unchanged since entry
+PASS: App\actuator\include\actuator.h unchanged since entry
+PASS: App\p1a_test\p1a_test.c unchanged since entry
+PASS: App\p1a_test\p1a_test.h unchanged since entry
+PASS: default
+PASS: reject_p1a_autotest
+PASS: reject_p1a_mailbox
+PASS: reject_p1b_test
+Board execution, HAL/RTOS tick accuracy, timing, stack residual: NOT_RUN

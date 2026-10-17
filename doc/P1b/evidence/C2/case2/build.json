@@ -1,0 +1,10 @@
+{
+  "Image": "case2",
+  "Started": "2026-10-17T09:49:16.9331723+08:00",
+  "Ended": "2026-10-17T09:49:23.0478990+08:00",
+  "ExitCode": 0,
+  "Defines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=1,STM32F103xE,USE_HAL_DRIVER,P1B_AUTOTEST_CASE=2,P1B_UNLOADED_ACK=1,P1B_TEST_ARM_KEY=0xC2201500UL",
+  "Project": "Projects/RTnode.uvprojx",
+  "Target": "Target 1",
+  "Action": "Rebuild only; no download"
+}

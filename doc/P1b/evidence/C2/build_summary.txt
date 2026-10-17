@@ -1,0 +1,11 @@
+case1 : exit=0, 0 errors / 0 warnings
+Program Size: Code=8724 RO-data=360 RW-data=100 ZI-data=3572  
+case2 : exit=0, 0 errors / 0 warnings
+Program Size: Code=8732 RO-data=360 RW-data=100 ZI-data=3572  
+case3 : exit=0, 0 errors / 0 warnings
+Program Size: Code=8744 RO-data=360 RW-data=100 ZI-data=3572  
+case4 : exit=0, 0 errors / 0 warnings
+Program Size: Code=8768 RO-data=360 RW-data=100 ZI-data=3572  
+default : exit=0, 0 errors / 0 warnings
+Program Size: Code=7600 RO-data=360 RW-data=100 ZI-data=3572  
+All five images built. Original single project restored; default output is unarmed.

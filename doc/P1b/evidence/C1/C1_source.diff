@@ -1,0 +1,495 @@
+diff --git a/Core/Inc/FreeRTOSConfig.h b/Core/Inc/FreeRTOSConfig.h
+index 18f29ae..7948155 100644
+--- a/Core/Inc/FreeRTOSConfig.h
++++ b/Core/Inc/FreeRTOSConfig.h
+@@ -14,7 +14,7 @@ void AppFatal_Assert(const char *file, int line);
+ // #define configSYSTICK_CLOCK_HZ                          (configCPU_CLOCK_HZ / 8)
+ #define configTICK_RATE_HZ                              1000
+ 
+-/* Application priorities are 0, 2, 4 and 5. */
++/* C1 uses Idle=0 and the no-output ControlTask=1. */
+ #define configMAX_PRIORITIES                            6
+ #define configMINIMAL_STACK_SIZE                        128
+ #define configMAX_TASK_NAME_LEN                         12
+@@ -26,7 +26,7 @@ void AppFatal_Assert(const char *file, int line);
+ #define configTASK_NOTIFICATION_ARRAY_ENTRIES           1
+ #define configUSE_MUTEXES                               0
+ #define configUSE_RECURSIVE_MUTEXES                     0
+-#define configUSE_COUNTING_SEMAPHORES                   1
++#define configUSE_COUNTING_SEMAPHORES                   0
+ #define configUSE_ALTERNATIVE_API                       0
+ #define configQUEUE_REGISTRY_SIZE                       0
+ #define configUSE_QUEUE_SETS                            0
+@@ -64,11 +64,11 @@ void AppFatal_Assert(const char *file, int line);
+ #define INCLUDE_vTaskDelete                             0
+ #define INCLUDE_vTaskSuspend                            0
+ #define INCLUDE_xResumeFromISR                          0
+-#define INCLUDE_vTaskDelayUntil                        1
++#define INCLUDE_xTaskDelayUntil                        1
+ #define INCLUDE_vTaskDelay                              0
+ #define INCLUDE_xTaskGetSchedulerState                  1
+ #define INCLUDE_xTaskGetCurrentTaskHandle               1
+-#define INCLUDE_uxTaskGetStackHighWaterMark             0
++#define INCLUDE_uxTaskGetStackHighWaterMark             1
+ #define INCLUDE_xTaskGetIdleTaskHandle                  0
+ #define INCLUDE_eTaskGetState                           0
+ #define INCLUDE_xEventGroupSetBitFromISR                0
+diff --git a/Core/Src/interrupts.c b/Core/Src/interrupts.c
+index df1f0af..06d3440 100644
+--- a/Core/Src/interrupts.c
++++ b/Core/Src/interrupts.c
+@@ -1,10 +1,31 @@
+ #include "stm32f1xx_hal.h"
+ #include "p1a_safety.h"
+-
+-/* P1a uses the HAL time base only; no FreeRTOS kernel is linked. */
++#include "FreeRTOS.h"
++#include "task.h"
++
++/* Startup owns vector slots; strong SVC/PendSV definitions come ONLY from
++ * portable/RVDS/ARM_CM3/port.c through FreeRTOSConfig.h aliases. */
++void xPortSysTickHandler(void);
++void SysTick_Handler(void);
++void NMI_Handler(void);
++void HardFault_Handler(void);
++void MemManage_Handler(void);
++void BusFault_Handler(void);
++void UsageFault_Handler(void);
++void DebugMon_Handler(void);
++
++/* One hardware interrupt, one HAL increment. Before scheduler start only
++ * HAL runs. During scheduler suspension the port MUST still receive ticks
++ * so xTaskIncrementTick can accumulate pending ticks for xTaskResumeAll.
++ * No runtime clock/tick reconfiguration or HAL_SuspendTick in C1.
++ */
+ void SysTick_Handler(void)
+ {
+     HAL_IncTick();
++    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
++    {
++        xPortSysTickHandler();
++    }
+ }
+ 
+ void NMI_Handler(void)
+@@ -32,17 +53,6 @@ void UsageFault_Handler(void)
+     P1a_FatalError();
+ }
+ 
+-/* These exceptions are unexpected in C1; P1b must review RTOS ownership. */
+-void SVC_Handler(void)
+-{
+-    P1a_FatalError();
+-}
+-
+-void PendSV_Handler(void)
+-{
+-    P1a_FatalError();
+-}
+-
+ void DebugMon_Handler(void)
+ {
+     P1a_FatalError();
+diff --git a/Core/Src/main.c b/Core/Src/main.c
+index c03610a..0a20840 100644
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -1,8 +1,39 @@
+ #include "stm32f1xx_hal.h"
+ #include "p1a_safety.h"
+ #include "actuator.h"
++#include "FreeRTOS.h"
++#include "task.h"
+ #include "../../App/p1a_test/p1a_test.h"
+ 
++/* C1 is always a no-output scheduler image. Keep P1a sources unchanged,
++ * but reject accidental reuse of the previous waveform-test build flags. */
++#if P1A_AUTOTEST_ENABLE || P1A_ACTUATOR_TEST_ENABLE
++#error "C1 requires both P1a test modes OFF"
++#endif
++#ifndef P1B_AUTOTEST_ENABLE
++#define P1B_AUTOTEST_ENABLE 0
++#endif
++#if P1B_AUTOTEST_ENABLE != 0
++#error "C1 has no P1b output test; P1B_AUTOTEST_ENABLE must be 0"
++#endif
++#if configTICK_RATE_HZ != 1000
++#error "C1 shared HAL/RTOS SysTick requires 1000 Hz"
++#endif
++#if TICK_INT_PRIORITY != configLIBRARY_LOWEST_INTERRUPT_PRIORITY
++#error "HAL and FreeRTOS SysTick must use the same lowest priority"
++#endif
++#if (configSUPPORT_STATIC_ALLOCATION != 1) || (configSUPPORT_DYNAMIC_ALLOCATION != 0)
++#error "C1 requires static-only RTOS allocation"
++#endif
++#if (configUSE_TICKLESS_IDLE != 0) || (configUSE_TIMERS != 0)
++#error "C1 requires the shared periodic tick and no timer task"
++#endif
++
++#define CONTROL_STACK_WORDS 256U /* StackType_t words, not bytes. */
++static StaticTask_t s_control_tcb;
++static StackType_t s_control_stack[CONTROL_STACK_WORDS];
++static void ControlTask(void *argument);
++
+ #if HSE_VALUE != 8000000U
+ #error "P1a requires the confirmed 8 MHz HSE clock configuration"
+ #endif
+@@ -67,14 +98,56 @@ int main(void)
+     {
+         P1a_FatalError();
+     }
++    if (xTaskCreateStatic(ControlTask, "ControlTask", CONTROL_STACK_WORDS,
++                          NULL, tskIDLE_PRIORITY + 1U, s_control_stack,
++                          &s_control_tcb) == NULL)
++    {
++        P1a_FatalError();
++    }
++
++    /* End the HAL-owned startup timebase before the port restarts the SAME
++     * SysTick at 72 MHz / 1000. Clear any old pending tick so it cannot be
++     * mistaken for the first RTOS tick. No HAL delay follows this handoff.
++     * The reviewed RVDS port's prvStartFirstTask re-enables IRQs before SVC.
++     */
++    __disable_irq();
++    SysTick->CTRL = 0U;
++    SysTick->VAL = 0U;
++    SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
++    __DSB();
++    __ISB();
++    vTaskStartScheduler();
++    P1a_FatalError(); /* Idle creation/port failure or unexpected return. */
++    return 0;
++}
++
++static void ControlTask(void *argument)
++{
++    TickType_t last_wake = xTaskGetTickCount();
++    ActuatorSnapshot initial_state;
++    (void)argument;
++
++    /* Check the actual first task context after SVC restored PSP/BASEPRI.
++     * These are fail-closed startup checks, not external timing evidence.
++     * GetSnapshot is read-only; C1 never enables or commands the actuator.
++     */
++    configASSERT(__get_IPSR() == 0U);
++    configASSERT(__get_PRIMASK() == 0U);
++    configASSERT(__get_BASEPRI() == 0U);
++    configASSERT(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
++    configASSERT(HAL_NVIC_GetPriorityGrouping() == NVIC_PRIORITYGROUP_4);
++    configASSERT(SysTick->LOAD == (SystemCoreClock / configTICK_RATE_HZ) - 1U);
++    Actuator_GetSnapshot(&initial_state);
++    configASSERT(initial_state.initialized && !initial_state.enabled &&
++                 !initial_state.fault_latched);
++
++    /* C1 placeholder only: no command source, Enable/Apply/Disable or GPIO.
++     * The 20-tick wait exercises blocking/context switches; it is not an
++     * externally measured 20 ms control-loop acceptance result.
++     */
+     for (;;)
+     {
+-#if P1A_ACTUATOR_TEST_ENABLE
+-        P1aTest_Poll();
+-#else
+-        /* Default image has no caller of Enable/Apply and no scheduler. */
+-        __WFI();
+-#endif
++        (void)xTaskDelayUntil(&last_wake, pdMS_TO_TICKS(20U));
+     }
+ }
+ 
+diff --git a/Projects/RTnode.uvprojx b/Projects/RTnode.uvprojx
+index ebc9cde..98d757f 100644
+--- a/Projects/RTnode.uvprojx
++++ b/Projects/RTnode.uvprojx
+@@ -10,7 +10,8 @@
+       <TargetName>Target 1</TargetName>
+       <ToolsetNumber>0x4</ToolsetNumber>
+       <ToolsetName>ARM-ADS</ToolsetName>
+-      <uAC6>1</uAC6>
++      <pCCUsed>5060960::V5.06 update 7 (build 960)::ARMCC</pCCUsed>
++      <uAC6>0</uAC6>
+       <TargetOption>
+         <TargetCommonOption>
+           <Device>STM32F103ZE</Device>
+@@ -51,10 +52,10 @@
+           <OutputName>RTnode</OutputName>
+           <CreateExecutable>1</CreateExecutable>
+           <CreateLib>0</CreateLib>
+-          <CreateHexFile>0</CreateHexFile>
++          <CreateHexFile>1</CreateHexFile>
+           <DebugInformation>1</DebugInformation>
+           <BrowseInformation>1</BrowseInformation>
+-          <ListingPath>.\</ListingPath>
++          <ListingPath>.\Listings\</ListingPath>
+           <HexFormatSelection>1</HexFormatSelection>
+           <Merge32K>0</Merge32K>
+           <CreateBatchFile>0</CreateBatchFile>
+@@ -125,47 +126,6 @@
+             <HexOffset>0</HexOffset>
+             <Oh166RecLen>16</Oh166RecLen>
+           </OPTHX>
+-          <Simulator>
+-            <UseSimulator>0</UseSimulator>
+-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
+-            <RunToMain>1</RunToMain>
+-            <RestoreBreakpoints>1</RestoreBreakpoints>
+-            <RestoreWatchpoints>1</RestoreWatchpoints>
+-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
+-            <RestoreFunctions>1</RestoreFunctions>
+-            <RestoreToolbox>1</RestoreToolbox>
+-            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
+-            <RestoreSysVw>1</RestoreSysVw>
+-          </Simulator>
+-          <Target>
+-            <UseTarget>1</UseTarget>
+-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
+-            <RunToMain>1</RunToMain>
+-            <RestoreBreakpoints>1</RestoreBreakpoints>
+-            <RestoreWatchpoints>1</RestoreWatchpoints>
+-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
+-            <RestoreFunctions>0</RestoreFunctions>
+-            <RestoreToolbox>1</RestoreToolbox>
+-            <RestoreTracepoints>1</RestoreTracepoints>
+-            <RestoreSysVw>1</RestoreSysVw>
+-          </Target>
+-          <RunDebugAfterBuild>0</RunDebugAfterBuild>
+-          <TargetSelection>0</TargetSelection>
+-          <SimDlls>
+-            <CpuDll></CpuDll>
+-            <CpuDllArguments></CpuDllArguments>
+-            <PeripheralDll></PeripheralDll>
+-            <PeripheralDllArguments></PeripheralDllArguments>
+-            <InitializationFile></InitializationFile>
+-          </SimDlls>
+-          <TargetDlls>
+-            <CpuDll></CpuDll>
+-            <CpuDllArguments></CpuDllArguments>
+-            <PeripheralDll></PeripheralDll>
+-            <PeripheralDllArguments></PeripheralDllArguments>
+-            <InitializationFile></InitializationFile>
+-            <Driver>BIN\UL2CM3.DLL</Driver>
+-          </TargetDlls>
+         </DebugOption>
+         <Utilities>
+           <Flash1>
+@@ -173,7 +133,7 @@
+             <UseExternalTool>0</UseExternalTool>
+             <RunIndependent>0</RunIndependent>
+             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
+-            <Capability>0</Capability>
++            <Capability>1</Capability>
+             <DriverSelection>-1</DriverSelection>
+           </Flash1>
+           <bUseTDR>1</bUseTDR>
+@@ -299,17 +259,17 @@
+                 <Size>0x0</Size>
+               </XRAM>
+               <OCR_RVCT1>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT1>
+               <OCR_RVCT2>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT2>
+               <OCR_RVCT3>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT3>
+@@ -319,7 +279,7 @@
+                 <Size>0x80000</Size>
+               </OCR_RVCT4>
+               <OCR_RVCT5>
+-                <Type>0</Type>
++                <Type>1</Type>
+                 <StartAddress>0x0</StartAddress>
+                 <Size>0x0</Size>
+               </OCR_RVCT5>
+@@ -365,7 +325,7 @@
+             <wLevel>2</wLevel>
+             <uThumb>0</uThumb>
+             <uSurpInc>0</uSurpInc>
+-            <uC99>0</uC99>
++            <uC99>1</uC99>
+             <uGnu>0</uGnu>
+             <useXO>0</useXO>
+             <v6Lang>3</v6Lang>
+@@ -377,9 +337,9 @@
+             <v6Rtti>0</v6Rtti>
+             <VariousControls>
+               <MiscControls></MiscControls>
+-              <Define></Define>
++              <Define>P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER</Define>
+               <Undefine></Undefine>
+-              <IncludePath></IncludePath>
++              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3</IncludePath>
+             </VariousControls>
+           </Cads>
+           <Aads>
+@@ -421,10 +381,132 @@
+       </TargetOption>
+       <Groups>
+         <Group>
+-          <GroupName>Source Group 1</GroupName>
++          <GroupName>Core</GroupName>
++          <Files>
++            <File>
++              <FileName>main.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\main.c</FilePath>
++            </File>
++            <File>
++              <FileName>interrupts.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\interrupts.c</FilePath>
++            </File>
++            <File>
++              <FileName>freertos_static.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\freertos_static.c</FilePath>
++            </File>
++            <File>
++              <FileName>rtos_hooks.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Core\Src\rtos_hooks.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>Actuator</GroupName>
++          <Files>
++            <File>
++              <FileName>actuator.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\actuator\src\actuator.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>Startup</GroupName>
++          <Files>
++            <File>
++              <FileName>startup_stm32f103xe.s</FileName>
++              <FileType>2</FileType>
++              <FilePath>..\Startup\startup_stm32f103xe.s</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>CMSIS</GroupName>
++          <Files>
++            <File>
++              <FileName>system_stm32f1xx.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\CMSIS\Device\ST\STM32F1xx\Source\Templates\system_stm32f1xx.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>HAL</GroupName>
++          <Files>
++            <File>
++              <FileName>stm32f1xx_hal.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal.c</FilePath>
++            </File>
++            <File>
++              <FileName>stm32f1xx_hal_rcc.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_rcc.c</FilePath>
++            </File>
++            <File>
++              <FileName>stm32f1xx_hal_cortex.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_cortex.c</FilePath>
++            </File>
++            <File>
++              <FileName>stm32f1xx_hal_gpio.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_gpio.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>tests</GroupName>
++          <Files>
++            <File>
++              <FileName>p1a_test.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\App\p1a_test\p1a_test.c</FilePath>
++            </File>
++          </Files>
++        </Group>
++        <Group>
++          <GroupName>FreeRTOS</GroupName>
++          <Files>
++            <File>
++              <FileName>tasks.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Middlewares\FreeRTOS\tasks.c</FilePath>
++            </File>
++            <File>
++              <FileName>list.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Middlewares\FreeRTOS\list.c</FilePath>
++            </File>
++            <File>
++              <FileName>port.c</FileName>
++              <FileType>1</FileType>
++              <FilePath>..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3\port.c</FilePath>
++            </File>
++          </Files>
+         </Group>
+       </Groups>
+     </Target>
+   </Targets>
+ 
++  <RTE>
++    <apis/>
++    <components/>
++    <files/>
++  </RTE>
++
++  <LayerInfo>
++    <Layers>
++      <Layer>
++        <LayName>RTnode</LayName>
++        <LayPrjMark>1</LayPrjMark>
++      </Layer>
++    </Layers>
++  </LayerInfo>
++
+ </Project>
+diff --git a/Core/Src/rtos_hooks.c b/Core/Src/rtos_hooks.c
+new file mode 100644
+index 0000000..91f732b
+--- /dev/null
++++ b/Core/Src/rtos_hooks.c
+@@ -0,0 +1,21 @@
++#include "FreeRTOS.h"
++#include "task.h"
++#include "p1a_safety.h"
++
++void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name);
++
++void AppFatal_Assert(const char *file, int line)
++{
++    /* No formatting, HAL delay, RTOS API, or recovery on the fatal path. */
++    (void)file;
++    (void)line;
++    P1a_FatalError(); /* Hardware first, latch, disable IRQs, never return. */
++}
++
++void vApplicationStackOverflowHook(TaskHandle_t task, char *task_name)
++{
++    /* task/name may be damaged: never dereference them. */
++    (void)task;
++    (void)task_name;
++    P1a_FatalError();
++}
