@@ -1,0 +1,21 @@
+{
+  "Result": "PASS",
+  "ApplicationWatchdogCalls": {
+    "HAL_IWDG_Init": [
+      "App\\health\\health_runtime.c:124"
+    ],
+    "HAL_IWDG_Refresh": [
+      "App\\health\\health_runtime.c:146"
+    ]
+  },
+  "Checks": [
+    "IROM/page reservation",
+    "one application init/refresh site",
+    "HealthTask has no Flash/PWM operations",
+    "UART command set unchanged",
+    "startup admission/order",
+    "both builds fresh/zero warnings",
+    "production excludes T2 helper; test includes it"
+  ],
+  "Hardware": "NOT RUN"
+}

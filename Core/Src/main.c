@@ -11,6 +11,7 @@
 #include "adc_app.h"
 #include "env_app.h"
 #include "display_app.h"
+#include "health_app.h"
 
 /* P1b test authorization and P1a exclusion live in control_config.h. */
 #if configTICK_RATE_HZ != 1000
@@ -68,6 +69,14 @@ int main(void)
     /* First action after C runtime. Reset-time high impedance is unavoidable. */
     P1a_ForceSafeOutput();
 
+    Health_BootCaptureReset();
+
+    /* Read-only admission check BEFORE HAL/Flash. Hardware-auto IWDG and
+     * corrupt option bytes need a separate startup assessment, never a new
+     * attempt to program options or unconditional early feeding here. */
+    if ((FLASH->OBR & (FLASH_OBR_IWDG_SW | FLASH_OBR_OPTERR)) != FLASH_OBR_IWDG_SW)
+    { P1a_FatalError(); }
+
     /* The CMSIS template's initial value is not the reset HSI frequency. */
     SystemCoreClockUpdate();
     if (HAL_Init() != HAL_OK)
@@ -86,11 +95,17 @@ int main(void)
         P1a_FatalError();
     }
 
+    /* A storage error stays observable through UART, with authorization off. */
+    (void)Health_BootFinalize();
     if (!Actuator_InitSafe())
     {
         P1a_FatalError();
     }
     if (!Control_Init())
+    {
+        P1a_FatalError();
+    }
+    if (!Health_InitTask())
     {
         P1a_FatalError();
     }

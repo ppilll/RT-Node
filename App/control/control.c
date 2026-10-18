@@ -5,6 +5,7 @@
 #include "stm32f1xx_hal.h"
 #include <stddef.h>
 #include "../can/can_app.h"
+#include "../health/health_app.h"
 #if !P1B_AUTOTEST_ENABLE
 #include "local_follow.h"
 #include "../imu/include/imu.h"
@@ -306,6 +307,7 @@ static bool Enable(ControlSession *session, uint32_t now)
     /* ISR overflow cannot slip between the final safety check and driver call.
      * CAN STOP posting is task-context at lower priority; it cannot preempt us. */
     bool overflow, expired, ok = false;
+    if (!Health_ControlAuthorizationAllowed()) { Disarm(session, 0U, now); return false; }
     if (Key0Stop(session, now)) { return false; }
     taskENTER_CRITICAL();
     overflow = CanApp_TakeOverflow();
@@ -330,6 +332,7 @@ static void Apply(ControlSession *session, int32_t pan, int32_t tilt, uint32_t n
     ActuatorCommand command;
     ActuatorApplyResult result;
     bool overflow, expired, ok = false;
+    if (!Health_ControlAuthorizationAllowed()) { Disarm(session, 0U, now); return; }
     if (Key0Stop(session, now)) { return; }
     command.pan_position_us = pan; command.tilt_position_us = tilt;
     taskENTER_CRITICAL();
@@ -481,6 +484,19 @@ static void P3bCycle(ControlSession *session)
         return;
     }
     if (overflow) { Disarm(session, 0x04U, now); return; }
+    /* Independent of KEY0. STOP and terminal faults above keep priority.
+     * Consume ordinary requests without creating a new authorization/epoch. */
+    if (!Health_ControlAuthorizationAllowed())
+    {
+        Disarm(session, 0U, now);
+        s_run.status.action_accepted = false;
+        if (pending || rejected)
+        {
+            s_run.status.last_action = rejected ? rejected_action : mode.action;
+            s_run.status.reason = 0x05U; /* Existing request-rejected reason. */
+        }
+        return;
+    }
     /* Expiry has priority over MODE and output, including a simultaneously
      * pending request. No new generation is accepted to resurrect an expired
      * session after a >=100ms gap between ISR reception times. */
@@ -566,7 +582,7 @@ static void ControlTask(void *argument)
     s_diagnostics.mode = CONTROL_PRESTART;
 #else
     s_run.status.boundary_tick = last_wake;
-    s_run.boot_local_pending = true;
+    s_run.boot_local_pending = Health_BootAutoLocalAllowed();
     InitKeys();
 #endif
     if (!StartCycleCounter()) { Stop(&session, CONTROL_FAULT_CLOCK); }
@@ -616,7 +632,8 @@ static void ControlTask(void *argument)
         }
 
 #if P1B_AUTOTEST_ENABLE
-        if (!session.terminal && (s_diagnostics.mode == CONTROL_PRESTART) &&
+        if (Health_ControlAuthorizationAllowed() && !session.terminal &&
+            (s_diagnostics.mode == CONTROL_PRESTART) &&
             ((TickType_t)(now - boot_tick) >= CONTROL_PRESTART_TICKS))
         {
             if (!ControlSession_Authorize(&session)) { Stop(&session, CONTROL_FAULT_MODE); }
@@ -636,7 +653,7 @@ static void ControlTask(void *argument)
                 }
             }
         }
-        else if (!session.terminal && session.authorized)
+        else if (Health_ControlAuthorizationAllowed() && !session.terminal && session.authorized)
         {
             if (step >= P1B_TEST_ACTIVE_STEPS) { Stop(&session, CONTROL_FAULT_NONE); }
             else

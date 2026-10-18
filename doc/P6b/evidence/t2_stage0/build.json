@@ -1,0 +1,13 @@
+{
+  "StartedUtc": "2026-10-18T10:13:30.6490296+00:00",
+  "EndedUtc": "2026-10-18T10:13:42.2924823+00:00",
+  "ExitCode": 0,
+  "BuildPass": true,
+  "SourceHead": "fc427fa7c0c3a0a3e81b17e75096e1bc00c5f6bf",
+  "WorkingTree": "P6a + P6b uncommitted changes",
+  "Variant": "t2_stage0",
+  "Defines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER,BME280_64BIT_ENABLE,P3B_OUTPUT_STAGE=0,P6_WDG_TEST_ENABLE=1,P6_WDG_TEST_UNLOADED_ACK=1",
+  "Download": "NOT RUN",
+  "Hardware": "NOT RUN",
+  "P6aEvidence": "Unchanged by request"
+}

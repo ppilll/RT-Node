@@ -1,6 +1,9 @@
 #include "uart_app.h"
 #include "adc_app.h"
 #include "env_app.h"
+#include "../health/health_app.h"
+#include "../control/control.h"
+#include "../actuator/include/actuator.h"
 #include "stm32f1xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -38,7 +41,9 @@ static volatile uint32_t s_min_stack_words = STACK_WORDS;
 static uint32_t s_rx_base, s_consumer, s_overflow;
 static char s_line[LINE_SIZE];
 static uint32_t s_length;
-static bool s_discard;
+static bool s_discard, s_cr_seen;
+static bool s_safe_ready, s_reboot_pending;
+static TickType_t s_safe_tick;
 static UartDisplaySnapshot s_display;
 static uint32_t ProgressLocked(void);
 
@@ -251,7 +256,9 @@ static bool RecoverRx(void)
     s_consumer = 0U;
     s_error_pending = 0U;
     s_length = 0U;
+    s_cr_seen = false;
     s_discard = true;
+    s_safe_ready = false;
     s_overflow++; /* Lost/error-damaged line; discard through the next LF. */
     ok = StartRx(); /* Exactly one task-context attempt for this error event. */
     taskEXIT_CRITICAL();
@@ -288,7 +295,9 @@ static bool TakeByte(uint8_t *byte)
                 s_consumer = producer - RX_SIZE / 2U;
                 s_overflow++;
                 s_length = 0U;
+                s_cr_seen = false;
                 s_discard = true;
+                s_safe_ready = false;
             }
         }
     }
@@ -396,19 +405,98 @@ static uint16_t EnvReply(char *reply)
     return (uint16_t)(end - reply);
 }
 
+/* One compact boot/runtime query; the original UartTask remains sole TX owner. */
+static uint16_t HealthReply(char *reply)
+{
+    HealthBootSnapshot boot;
+    HealthRuntimeSnapshot runtime;
+    const char *reset, *policy, *progress, *watchdog;
+    char *end = reply;
+    Health_GetBootSnapshot(&boot);
+    Health_GetRuntimeSnapshot(&runtime);
+    switch (boot.reset_reason)
+    {
+        case HEALTH_RESET_POWER: reset = "POWER"; break;
+        case HEALTH_RESET_IWDG: reset = "IWDG"; break;
+        case HEALTH_RESET_SOFTWARE: reset = "SOFT"; break;
+        case HEALTH_RESET_PIN: reset = "PIN"; break;
+        case HEALTH_RESET_OTHER: reset = "OTHER"; break;
+        default: reset = "UNKNOWN"; break;
+    }
+    switch (boot.persistent_state)
+    {
+        case HEALTH_STORE_AUTO: policy = "AUTO"; break;
+        case HEALTH_STORE_IWDG_LOCKED: policy = "LOCK"; break;
+        case HEALTH_STORE_MANUAL_ONLY: policy = "MANUAL"; break;
+        case HEALTH_STORE_EMPTY_LOCKED: policy = "EMPTY"; break;
+        default: policy = "BAD"; break;
+    }
+    progress = runtime.control_progress == HEALTH_CTRL_RUNNING ? "RUN" :
+               runtime.control_progress == HEALTH_CTRL_STALLED ? "STALL" : "INIT";
+    watchdog = runtime.watchdog == HEALTH_WDG_RUNNING ? "ON" :
+               runtime.watchdog == HEALTH_WDG_START_ERROR ? "STARTERR" :
+               runtime.watchdog == HEALTH_WDG_STARTING ? "START" : "OFF";
+    /* Max 58 bytes including CRLF. A is this boot's automatic LOCAL policy;
+     * T distinguishes compile-time T2 stop from a measured control stall. */
+    memcpy(end, "HEALTH C=", 9U); end += 9;
+    memcpy(end, progress, strlen(progress)); end += strlen(progress);
+    memcpy(end, " W=", 3U); end += 3;
+    memcpy(end, watchdog, strlen(watchdog)); end += strlen(watchdog);
+    memcpy(end, " R=", 3U); end += 3;
+    memcpy(end, reset, strlen(reset)); end += strlen(reset);
+    memcpy(end, " L=", 3U); end += 3;
+    *end++ = Health_ControlAuthorizationAllowed() ? '0' : '1';
+    memcpy(end, " P=", 3U); end += 3;
+    memcpy(end, policy, strlen(policy)); end += strlen(policy);
+    memcpy(end, " A=", 3U); end += 3;
+    *end++ = Health_BootAutoLocalAllowed() ? '1' : '0';
+    memcpy(end, " T=", 3U); end += 3;
+    *end++ = runtime.test_stop_active ? '1' : '0';
+    *end++ = '\r'; *end++ = '\n';
+    return (uint16_t)(end - reply);
+}
+
+static bool LocalRecoverySafe(void)
+{
+    HealthBootSnapshot boot;
+    ControlStatusSnapshot control;
+    ControlDiagnostics diagnostics;
+    ActuatorSnapshot actuator;
+    Health_GetBootSnapshot(&boot);
+    Control_GetStatus(&control);
+    Control_GetDiagnostics(&diagnostics);
+    Actuator_GetSnapshot(&actuator);
+    return (boot.persistent_state == HEALTH_STORE_EMPTY_LOCKED ||
+            boot.persistent_state == HEALTH_STORE_IWDG_LOCKED) &&
+           !Health_ControlAuthorizationAllowed() &&
+           control.state == P3B_DISABLED && !control.enabled &&
+           !control.key0_stop_latched && diagnostics.fault == CONTROL_FAULT_NONE &&
+           HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_4) != GPIO_PIN_RESET &&
+           actuator.initialized && !actuator.enabled && !actuator.fault_latched;
+}
+
 /* Reply is a single task-local short buffer, not a command/TX queue. */
 static uint16_t ParseByte(uint8_t byte, char *reply)
 {
     char *end;
     uint32_t received;
-    if (byte == '\r') { return 0U; }
     if (s_discard)
     {
         if (byte != '\n') { return 0U; }
         s_discard = false;
+        s_cr_seen = false;
         memcpy(reply, "ERR\r\n", 5U);
         return 5U;
     }
+    /* CR is a line terminator prefix, never silently remove embedded CR
+     * from a maintenance command. Both LF and CRLF remain supported. */
+    if (byte == '\r' && !s_cr_seen) { s_cr_seen = true; return 0U; }
+    if (byte != '\n' && s_cr_seen)
+    {
+        s_length = 0U; s_discard = true; s_safe_ready = false;
+        return 0U;
+    }
+    if (byte == '\n') { s_cr_seen = false; }
     if (byte != '\n')
     {
         if ((byte < 0x20U) || (byte > 0x7eU) || (s_length == LINE_SIZE - 1U))
@@ -416,6 +504,7 @@ static uint16_t ParseByte(uint8_t byte, char *reply)
             if (s_length == LINE_SIZE - 1U) { s_overflow++; }
             s_length = 0U;
             s_discard = true;
+            s_safe_ready = false;
         }
         else { s_line[s_length++] = (char)byte; }
         return 0U;
@@ -424,6 +513,29 @@ static uint16_t ParseByte(uint8_t byte, char *reply)
     s_line[s_length] = '\0';
     s_length = 0U;
     PublishCommand(); /* Also records complete but unknown ASCII commands. */
+    if (strcmp(s_line, "SAFE CLEAR YES") == 0)
+    {
+        bool confirmed = s_safe_ready &&
+            (TickType_t)(xTaskGetTickCount() - s_safe_tick) < 10000U;
+        s_safe_ready = false; /* Every YES consumes the window, even on denial. */
+        if (confirmed && LocalRecoverySafe() && Health_StageLocalRecovery())
+        {
+            s_reboot_pending = true;
+            memcpy(reply, "SAFE REBOOT\r\n", 13U); return 13U;
+        }
+        memcpy(reply, "SAFE DENIED\r\n", 13U); return 13U;
+    }
+    s_safe_ready = false; /* A different complete command cancels old intent. */
+    if (strcmp(s_line, "SAFE CLEAR?") == 0)
+    {
+        if (LocalRecoverySafe())
+        {
+            s_safe_tick = xTaskGetTickCount(); s_safe_ready = true;
+            memcpy(reply, "SAFE READY 10S\r\n", 16U); return 16U;
+        }
+        memcpy(reply, "SAFE DENIED\r\n", 13U); return 13U;
+    }
+    if (strcmp(s_line, "HEALTH?") == 0) { return HealthReply(reply); }
     if (strcmp(s_line, "PING") == 0)
     { memcpy(reply, "PONG\r\n", 6U); return 6U; }
     if (strcmp(s_line, "ADC?") == 0) { return AdcReply(reply); }
@@ -442,6 +554,21 @@ static uint16_t ParseByte(uint8_t byte, char *reply)
     }
     memcpy(reply, "ERR\r\n", 5U);
     return 5U;
+}
+
+static void ReplyAndMaybeReboot(const char *reply, uint16_t size)
+{
+    bool sent = s_error_pending == 0U && SendReply(reply, size);
+    if (s_reboot_pending)
+    {
+        /* HAL blocking TX waits for TC. Reply means request staged only;
+         * persistent result requires a new HEALTH? after reboot. */
+        if (sent && s_error_pending == 0U && LocalRecoverySafe())
+        { NVIC_SystemReset(); }
+        s_reboot_pending = false;
+        if (!Health_CancelLocalRecovery()) { Fault(); }
+    }
+    if (!sent) { s_safe_ready = false; Fault(); }
 }
 
 static void UartTask(void *argument)
@@ -499,9 +626,8 @@ static void UartTask(void *argument)
                         if (size != 0U) { break; }
                     }
                 }
-                if ((size != 0U) && (s_error_pending == 0U) &&
-                    !SendReply(reply, size))
-                { Fault(); }
+                if (size != 0U)
+                { ReplyAndMaybeReboot(reply, size); }
             }
         }
         taskENTER_CRITICAL();

@@ -18,7 +18,7 @@
           <Vendor>STMicroelectronics</Vendor>
           <PackID>Keil.STM32F1xx_DFP.2.3.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
-          <Cpu>IRAM(0x20000000,0x00010000) IROM(0x08000000,0x00080000) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
+          <Cpu>IRAM(0x20000000,0x00010000) IROM(0x08000000,0x0007F800) CPUTYPE("Cortex-M3") CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
           <StartupFile></StartupFile>
           <FlashDriverDll>UL2CM3(-S0 -C0 -P0 -FD20000000 -FC1000 -FN1 -FF0STM32F10x_512 -FS08000000 -FL080000 -FP0($$Device:STM32F103ZE$Flash\STM32F10x_512.FLM))</FlashDriverDll>
@@ -251,7 +251,7 @@
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x80000</Size>
+                <Size>0x7F800</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -276,7 +276,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x80000</Size>
+                <Size>0x7F800</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER,BME280_64BIT_ENABLE</Define>
               <Undefine></Undefine>
-              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3;..\App\imu\include;..\Driver\imu;..\App\can;..\App\uart;..\App\adc;..\App\env;..\Driver\bme280;..\App\display</IncludePath>
+              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3;..\App\imu\include;..\Driver\imu;..\App\can;..\App\uart;..\App\adc;..\App\env;..\Driver\bme280;..\App\display;..\App\health</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -443,6 +443,26 @@
         <Group>
           <GroupName>HAL</GroupName>
           <Files>
+            <File>
+              <FileName>stm32f1xx_hal_iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_iwdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f1xx_hal_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f1xx_hal_flash_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_flash_ex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f1xx_hal_pwr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_pwr.c</FilePath>
+            </File>
             <File>
               <FileName>stm32f1xx_hal_i2c.c</FileName>
               <FileType>1</FileType>
@@ -562,6 +582,21 @@
               <FileName>port.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3\port.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Health</GroupName>
+          <Files>
+            <File>
+              <FileName>health_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\health\health_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>health_runtime.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\health\health_runtime.c</FilePath>
             </File>
           </Files>
         </Group>

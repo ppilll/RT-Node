@@ -1,0 +1,37 @@
+﻿[
+    {
+        "Defines":  [
+                        "/DP6_WDG_TEST_ENABLE=1"
+                    ],
+        "ExitCode":  2,
+        "Output":  "runtime_host.c\nF:\\嵌入式Linux学习资料\\RT-Node\\App\\health\\health_config.h(24): fatal error C1189: #error:  \"P6 T2 requires Stage0 and explicit unloaded acknowledgement\"",
+        "Expected":  "Compilation rejection"
+    },
+    {
+        "Defines":  [
+                        "/DP6_WDG_TEST_ENABLE=1",
+                        "/DP6_WDG_TEST_UNLOADED_ACK=1",
+                        "/DP3B_OUTPUT_STAGE=1"
+                    ],
+        "ExitCode":  2,
+        "Output":  "runtime_host.c\nF:\\嵌入式Linux学习资料\\RT-Node\\App\\health\\health_config.h(24): fatal error C1189: #error:  \"P6 T2 requires Stage0 and explicit unloaded acknowledgement\"",
+        "Expected":  "Compilation rejection"
+    },
+    {
+        "Defines":  [
+                        "/DP6_WDG_TEST_ENABLE=0",
+                        "/DP6_WDG_TEST_UNLOADED_ACK=1"
+                    ],
+        "ExitCode":  2,
+        "Output":  "runtime_host.c\nF:\\嵌入式Linux学习资料\\RT-Node\\App\\health\\health_config.h(31): fatal error C1189: #error:  \"Production image must not retain P6 T2 acknowledgement\"",
+        "Expected":  "Compilation rejection"
+    },
+    {
+        "Defines":  [
+                        "/DP6_WDG_TEST_ENABLE=2"
+                    ],
+        "ExitCode":  2,
+        "Output":  "runtime_host.c\nF:\\嵌入式Linux学习资料\\RT-Node\\App\\health\\health_config.h(20): fatal error C1189: #error:  \"P6_WDG_TEST_ENABLE must be 0 or 1\"",
+        "Expected":  "Compilation rejection"
+    }
+]
