@@ -7,6 +7,8 @@
 #include "../../App/control/control_config.h"
 #include "imu.h"
 #include "can_app.h"
+#include "uart_app.h"
+#include "adc_app.h"
 
 /* P1b test authorization and P1a exclusion live in control_config.h. */
 #if configTICK_RATE_HZ != 1000
@@ -98,6 +100,12 @@ int main(void)
     {
         P1a_FatalError();
     }
+    if (!UartApp_Init())
+    {
+        P1a_FatalError();
+    }
+    /* ADC failure is reported by UartTask; existing control stays available. */
+    (void)AdcApp_Init();
 
     /* End the HAL-owned startup timebase before the port restarts the SAME
      * SysTick at 72 MHz / 1000. Clear any old pending tick so it cannot be
