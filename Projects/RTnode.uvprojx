@@ -337,9 +337,9 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER</Define>
+              <Define>P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER,BME280_64BIT_ENABLE</Define>
               <Undefine></Undefine>
-              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3;..\App\imu\include;..\Driver\imu;..\App\can;..\App\uart;..\App\adc</IncludePath>
+              <IncludePath>..\App\actuator\include;..\Core\Inc;..\Driver\CMSIS\Include;..\Driver\CMSIS\Device\ST\STM32F1xx\Include;..\Driver\STM32F1xx_HAL_Driver\Inc;..\Middlewares\FreeRTOS\include;..\Middlewares\FreeRTOS\portable\RVDS\ARM_CM3;..\App\imu\include;..\Driver\imu;..\App\can;..\App\uart;..\App\adc;..\App\env;..\Driver\bme280;..\App\display</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -387,6 +387,11 @@
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>i2c_msp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\i2c_msp.c</FilePath>
             </File>
             <File>
               <FileName>interrupts.c</FileName>
@@ -438,6 +443,11 @@
         <Group>
           <GroupName>HAL</GroupName>
           <Files>
+            <File>
+              <FileName>stm32f1xx_hal_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\STM32F1xx_HAL_Driver\Src\stm32f1xx_hal_i2c.c</FilePath>
+            </File>
             <File>
               <FileName>stm32f1xx_hal.c</FileName>
               <FileType>1</FileType>
@@ -572,6 +582,31 @@
               <FileName>adc_app.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\App\adc\adc_app.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Display</GroupName>
+          <Files>
+            <File>
+              <FileName>display_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\display\display_app.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Environment</GroupName>
+          <Files>
+            <File>
+              <FileName>env_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\env\env_app.c</FilePath>
+            </File>
+            <File>
+              <FileName>bme280.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Driver\bme280\bme280.c</FilePath>
             </File>
           </Files>
         </Group>

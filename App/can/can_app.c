@@ -50,6 +50,16 @@ static TaskHandle_t s_task;
 static volatile uint32_t s_rx_overflow;
 static volatile uint32_t s_can_error;
 static volatile uint32_t s_start_failed;
+static CanDisplaySnapshot s_display;
+
+bool CanApp_GetDisplaySnapshot(CanDisplaySnapshot *out)
+{
+    if (out == NULL) { return false; }
+    taskENTER_CRITICAL();
+    *out = s_display;
+    taskEXIT_CRITICAL();
+    return out->valid;
+}
 
 /* Heartbeat is independent of the ControlTask command/session lifetime. */
 static bool s_has_heartbeat;
@@ -91,6 +101,20 @@ static bool ProcessFrame(const CanRxFrame *frame)
 {
     const uint8_t *p = frame->data;
     uint16_t action;
+    taskENTER_CRITICAL();
+    s_display.last_id = frame->id;
+    s_display.last_rx_tick = frame->received_tick;
+    s_display.rx_count++;
+    s_display.valid = true;
+    if (frame->ide == CAN_ID_STD && frame->rtr == CAN_RTR_DATA &&
+        frame->dlc == 8U && frame->id == CAN_CONTROL_ID)
+    {
+        s_display.requested_pan_us = Read16(p + 4);
+        s_display.requested_tilt_us = Read16(p + 6);
+        s_display.request_tick = frame->received_tick;
+        s_display.request_valid = true;
+    }
+    taskEXIT_CRITICAL();
     if ((frame->ide != CAN_ID_STD) || (frame->rtr != CAN_RTR_DATA) ||
         (frame->dlc != 8U)) { return false; }
     switch (frame->id)

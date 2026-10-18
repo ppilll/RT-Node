@@ -104,14 +104,12 @@ static bool Accept(ControlSession *session, const ControlCommandSnapshot *comman
 #endif
 
 #if !P1B_AUTOTEST_ENABLE
-/* Elite V2 candidate only: KEY0 PE4 / KEY1 PE3, pull-up, active low.
- * No GPIO interrupt, task or trace. Physical board confirmation is a G1 gate.
- */
+/* Approved KEY0 PE4, active low. KEY1 PE3 belongs only to DisplayTask. */
 static void InitKeys(void)
 {
     GPIO_InitTypeDef gpio = {0};
     __HAL_RCC_GPIOE_CLK_ENABLE();
-    gpio.Pin = GPIO_PIN_4 | GPIO_PIN_3;
+    gpio.Pin = GPIO_PIN_4;
     gpio.Mode = GPIO_MODE_INPUT;
     gpio.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOE, &gpio);
@@ -167,7 +165,8 @@ void Control_PostRemote(uint16_t epoch, uint16_t seq, uint16_t pan, uint16_t til
                         uint32_t received_tick)
 {
     taskENTER_CRITICAL();
-    if (!s_mail.stop_pending && RemoteState(s_status.state) && epoch == s_status.epoch &&
+    if (!s_status.key0_stop_latched && !s_mail.stop_pending &&
+        RemoteState(s_status.state) && epoch == s_status.epoch &&
         After(received_tick, s_status.boundary_tick) &&
         (uint32_t)(xTaskGetTickCount() - received_tick) < CONTROL_MAX_TTL_TICKS &&
         pan >= 1000U && pan <= 2000U && tilt >= 1200U && tilt <= 1600U &&
@@ -233,8 +232,7 @@ static struct {
     LocalFollowState follow;
     RemoteTarget remote;
     uint32_t enabled_tick, enabled_cycle;
-    uint32_t key0_up, key0_down, key1_down;
-    bool released_ready;
+    bool boot_local_pending; /* Consumed by the first start OR any normal disarm. */
     int32_t pan, tilt;
 } s_run;
 
@@ -243,16 +241,11 @@ static uint8_t RuntimeMode(void)
     if (s_run.status.state >= P3B_WAIT_LOCAL && s_run.status.state <= P3B_ACTIVE_LOCAL) { return 1U; }
     return RemoteState(s_run.status.state) ? 2U : 0U;
 }
-static void ResetKeys(void)
-{
-    s_run.key0_up = 0U; s_run.key0_down = 0U; s_run.released_ready = false;
-}
 static void Invalidate(uint32_t now)
 {
     s_run.status.boundary_tick = now;
     s_run.remote.valid = false;
     s_run.pan = 1500; s_run.tilt = 1500;
-    ResetKeys();
     taskENTER_CRITICAL();
     s_mail.remote.valid = false; s_mail.has_seq = false;
     s_mail.mode_pending = false; s_mail.rejected_pending = false;
@@ -262,6 +255,7 @@ static void Invalidate(uint32_t now)
 static void Disarm(ControlSession *session, uint8_t reason, uint32_t now)
 {
     Actuator_Disable();
+    s_run.boot_local_pending = false;
     now = xTaskGetTickCount(); /* actual disabled boundary, not cycle entry */
     if (!ControlSession_DisarmNormal(session)) { return; }
     if (s_run.status.state != P3B_DISABLED) { s_run.status.epoch++; }
@@ -269,6 +263,22 @@ static void Disarm(ControlSession *session, uint8_t reason, uint32_t now)
     s_run.status.state = P3B_DISABLED;
     s_run.status.reason = reason;
     s_diagnostics.mode = CONTROL_DISABLED;
+}
+/* Stop on the first observed low (<= one 20 ms cycle nominally). A stop does
+ * not need release debounce: bounce must never grant a new authorization.
+ * Hardware is disabled BEFORE publishing the reset-only latch. */
+static bool Key0Stop(ControlSession *session, uint32_t now)
+{
+    if (!s_run.status.key0_stop_latched &&
+        HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_4) == GPIO_PIN_RESET)
+    {
+        Actuator_Disable();
+        s_run.status.key0_stop_latched = true;
+        s_run.status.action_accepted = false;
+        Disarm(session, 0x01U, now);
+        s_run.status.revision++;
+    }
+    return s_run.status.key0_stop_latched;
 }
 static void PublishStatus(const ControlSession *session)
 {
@@ -296,6 +306,7 @@ static bool Enable(ControlSession *session, uint32_t now)
     /* ISR overflow cannot slip between the final safety check and driver call.
      * CAN STOP posting is task-context at lower priority; it cannot preempt us. */
     bool overflow, expired, ok = false;
+    if (Key0Stop(session, now)) { return false; }
     taskENTER_CRITICAL();
     overflow = CanApp_TakeOverflow();
     expired = RuntimeMode() == 2U &&
@@ -319,6 +330,7 @@ static void Apply(ControlSession *session, int32_t pan, int32_t tilt, uint32_t n
     ActuatorCommand command;
     ActuatorApplyResult result;
     bool overflow, expired, ok = false;
+    if (Key0Stop(session, now)) { return; }
     command.pan_position_us = pan; command.tilt_position_us = tilt;
     taskENTER_CRITICAL();
     overflow = CanApp_TakeOverflow();
@@ -330,11 +342,13 @@ static void Apply(ControlSession *session, int32_t pan, int32_t tilt, uint32_t n
     else if (!ok) { Stop(session, CONTROL_FAULT_DRIVER); }
     else { s_diagnostics.applied_count++; }
 }
-static void Motion(ControlSession *session, uint32_t now, bool key0, bool key1)
+static void Motion(ControlSession *session, uint32_t now)
 {
     ControlCommandSnapshot command;
     bool primed;
-    if (RuntimeMode() == 1U || s_run.status.state == P3B_DISABLED)
+    if (s_run.status.key0_stop_latched) { return; }
+    if (RuntimeMode() == 1U ||
+        (s_run.status.state == P3B_DISABLED && s_run.boot_local_pending))
     {
         ImuAttitudeSnapshot imu;
         bool available = Imu_GetSnapshot(&imu);
@@ -348,19 +362,8 @@ static void Motion(ControlSession *session, uint32_t now, bool key0, bool key1)
         if (session->authorized && !ready) { Stop(session, CONTROL_FAULT_COMMAND); return; }
         if (!session->authorized)
         {
-            if (!ready || key1) { ResetKeys(); return; }
-            if (!key0)
-            {
-                s_run.key0_down = 0U;
-                if (s_run.key0_up < 2U) { s_run.key0_up++; }
-                if (s_run.key0_up >= 2U) { s_run.released_ready = true; }
-            }
-            else
-            {
-                s_run.key0_up = 0U;
-                if (s_run.key0_down < 2U) { s_run.key0_down++; }
-            }
-            if (!key0 || s_run.key0_down < 2U || !s_run.released_ready) { return; }
+            if (!ready || Key0Stop(session, now)) { return; }
+            s_run.boot_local_pending = false;
             if (s_run.status.state == P3B_DISABLED)
             {
                 Actuator_Disable(); s_run.status.epoch++; Invalidate(xTaskGetTickCount());
@@ -430,10 +433,8 @@ static void P3bCycle(ControlSession *session)
     RemoteTarget remote;
     bool stop, pending, rejected, overflow;
     uint16_t stop_action, rejected_action;
-    bool key0 = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_4) == GPIO_PIN_RESET;
-    bool key1 = HAL_GPIO_ReadPin(GPIOE, GPIO_PIN_3) == GPIO_PIN_RESET;
-    if (key1) { if (s_run.key1_down < 2U) { s_run.key1_down++; } }
-    else { s_run.key1_down = 0U; }
+    /* Before IMU checks, mailbox handling or any mode/output transition. */
+    bool locked = Key0Stop(session, now);
     taskENTER_CRITICAL();
     stop = s_mail.stop_pending; stop_action = s_mail.stop_action; s_mail.stop_pending = false;
     pending = s_mail.mode_pending; mode = s_mail.mode; s_mail.mode_pending = false;
@@ -463,9 +464,19 @@ static void P3bCycle(ControlSession *session)
         { s_run.status.last_action = rejected ? rejected_action : mode.action; s_run.status.action_accepted = false; }
         return;
     }
-    if (stop || s_run.key1_down >= 2U)
+    if (locked)
     {
-        Disarm(session, stop ? 0x02U : 0x01U, now);
+        if (stop) { s_run.status.last_action = stop_action; s_run.status.action_accepted = true; }
+        else if (pending || rejected)
+        {
+            s_run.status.last_action = rejected ? rejected_action : mode.action;
+            s_run.status.action_accepted = false;
+        }
+        return;
+    }
+    if (stop)
+    {
+        Disarm(session, 0x02U, now);
         if (stop) { s_run.status.last_action = stop_action; s_run.status.action_accepted = true; }
         return;
     }
@@ -484,6 +495,8 @@ static void P3bCycle(ControlSession *session)
         bool accepted = mode.replay ? mode.accepted :
             mode.eligible && mode.epoch == s_run.status.epoch &&
             After(mode.tick, s_run.status.boundary_tick);
+        /* Even MODE=0 while already disabled cancels the boot opportunity. */
+        if (accepted) { s_run.boot_local_pending = false; }
         if (accepted && !mode.replay && mode.mode != RuntimeMode())
         {
             switched = true;
@@ -502,7 +515,7 @@ static void P3bCycle(ControlSession *session)
         taskEXIT_CRITICAL();
         if (rejected)
         { s_run.status.last_action = rejected_action; s_run.status.action_accepted = false; s_run.status.reason = 0x05U; }
-        /* A real switch is an output-free cycle, even if KEY0 was already down. */
+        /* A real switch is an output-free cycle. */
         if (switched) { return; }
     }
     if (rejected)
@@ -513,9 +526,7 @@ static void P3bCycle(ControlSession *session)
         (uint32_t)(now - s_run.remote.tick) >= CONTROL_MAX_TTL_TICKS)
     { Disarm(session, 0x03U, now); return; }
 #if P3B_OUTPUT_STAGE > 0
-    Motion(session, now, key0, key1);
-#else
-    (void)key0;
+    Motion(session, now);
 #endif
 }
 #endif
@@ -555,6 +566,7 @@ static void ControlTask(void *argument)
     s_diagnostics.mode = CONTROL_PRESTART;
 #else
     s_run.status.boundary_tick = last_wake;
+    s_run.boot_local_pending = true;
     InitKeys();
 #endif
     if (!StartCycleCounter()) { Stop(&session, CONTROL_FAULT_CLOCK); }

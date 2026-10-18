@@ -1,5 +1,6 @@
 #include "uart_app.h"
 #include "adc_app.h"
+#include "env_app.h"
 #include "stm32f1xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -38,6 +39,35 @@ static uint32_t s_rx_base, s_consumer, s_overflow;
 static char s_line[LINE_SIZE];
 static uint32_t s_length;
 static bool s_discard;
+static UartDisplaySnapshot s_display;
+static uint32_t ProgressLocked(void);
+
+bool UartApp_GetDisplaySnapshot(UartDisplaySnapshot *out)
+{
+    if (out == NULL) { return false; }
+    taskENTER_CRITICAL();
+    *out = s_display;
+    taskEXIT_CRITICAL();
+    return out->valid;
+}
+
+static void PublishCommand(void)
+{
+    uint32_t i;
+    char summary[16];
+    for (i = 0U; i < sizeof(summary) - 1U && s_line[i] != '\0'; i++)
+    { summary[i] = s_line[i]; }
+    summary[i] = '\0';
+    /* Fill the entire local array before copying its bounded contents. */
+    while (++i < sizeof(summary)) { summary[i] = '\0'; }
+    taskENTER_CRITICAL();
+    memcpy(s_display.last_command, summary, sizeof(summary));
+    s_display.last_command_tick = xTaskGetTickCount();
+    s_display.rx_bytes = s_rx_base + ProgressLocked();
+    s_display.ovf_count = s_overflow;
+    s_display.valid = true;
+    taskEXIT_CRITICAL();
+}
 
 void USART1_IRQHandler(void);
 void DMA1_Channel5_IRQHandler(void);
@@ -320,13 +350,50 @@ static bool SendReply(const char *reply, uint16_t size)
     while (size != 0U)
     {
         chunk = (size > 30U) ? 30U : size;
-        if (HAL_UART_Transmit(&s_uart, (uint8_t *)reply, chunk, 3U) != HAL_OK)
+        if (HAL_UART_Transmit(&s_uart, (uint8_t *)reply, chunk, 10U) != HAL_OK)
         { return false; }
         AdcApp_Process();
         reply += chunk;
         size -= chunk;
     }
     return true;
+}
+
+static char *AppendCenti(char *out, uint32_t value)
+{
+    out = AppendDecimal(out, value / 100U);
+    *out++ = '.';
+    *out++ = (char)('0' + (value / 10U) % 10U);
+    *out++ = (char)('0' + value % 10U);
+    return out;
+}
+
+/* Max valid ENV line: 52 bytes (T=-40.00, H=100.00, P=110000,
+ * tick=4294967295), CRLF
+ * included; fits the existing 64-byte ADC reply buffer without a terminator. */
+static uint16_t EnvReply(char *reply)
+{
+    EnvSnapshot env;
+    char *end;
+    uint32_t magnitude;
+    if (!EnvApp_GetSnapshot(&env))
+    { memcpy(reply, "ENV NOT READY\r\n", 15U); return 15U; }
+    if (!env.valid || ((uint32_t)xTaskGetTickCount() - env.sample_tick > 2000U))
+    { memcpy(reply, "ENV ERROR\r\n", 11U); return 11U; }
+    memcpy(reply, "ENV:T=", 6U);
+    end = reply + 6;
+    /* Unsigned negation also handles INT32_MIN without signed UB. */
+    magnitude = (uint32_t)env.temperature_centi_c;
+    if (env.temperature_centi_c < 0) { *end++ = '-'; magnitude = 0U - magnitude; }
+    end = AppendCenti(end, magnitude);
+    memcpy(end, "C,H=", 4U);
+    end = AppendCenti(end + 4, env.humidity_centi_pct);
+    memcpy(end, "%,P=", 4U);
+    end = AppendDecimal(end + 4, env.pressure_pa);
+    memcpy(end, "Pa,tick=", 8U);
+    end = AppendDecimal(end + 8, env.sample_tick);
+    *end++ = '\r'; *end++ = '\n';
+    return (uint16_t)(end - reply);
 }
 
 /* Reply is a single task-local short buffer, not a command/TX queue. */
@@ -356,9 +423,11 @@ static uint16_t ParseByte(uint8_t byte, char *reply)
     if (s_length == 0U) { return 0U; }
     s_line[s_length] = '\0';
     s_length = 0U;
+    PublishCommand(); /* Also records complete but unknown ASCII commands. */
     if (strcmp(s_line, "PING") == 0)
     { memcpy(reply, "PONG\r\n", 6U); return 6U; }
     if (strcmp(s_line, "ADC?") == 0) { return AdcReply(reply); }
+    if (strcmp(s_line, "ENV?") == 0) { return EnvReply(reply); }
     if (strcmp(s_line, "COUNT?") == 0)
     {
         taskENTER_CRITICAL();
@@ -377,7 +446,7 @@ static uint16_t ParseByte(uint8_t byte, char *reply)
 
 static void UartTask(void *argument)
 {
-    char reply[64]; /* Max ADC response 63 bytes, no printf stack cost. */
+    char reply[64]; /* Max ADC 63 / ENV 52 bytes, no printf stack cost. */
     uint8_t byte;
     uint16_t size;
     uint32_t n;
@@ -435,6 +504,10 @@ static void UartTask(void *argument)
                 { Fault(); }
             }
         }
+        taskENTER_CRITICAL();
+        s_display.rx_bytes = s_rx_base + ProgressLocked();
+        s_display.ovf_count = s_overflow;
+        taskEXIT_CRITICAL();
         free_words = uxTaskGetStackHighWaterMark(NULL);
         if (free_words < s_min_stack_words) { s_min_stack_words = free_words; }
         if ((s_fault != 0U) || ((size == 0U) && (n < RX_BUDGET)))

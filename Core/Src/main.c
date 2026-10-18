@@ -9,6 +9,8 @@
 #include "can_app.h"
 #include "uart_app.h"
 #include "adc_app.h"
+#include "env_app.h"
+#include "display_app.h"
 
 /* P1b test authorization and P1a exclusion live in control_config.h. */
 #if configTICK_RATE_HZ != 1000
@@ -106,6 +108,9 @@ int main(void)
     }
     /* ADC failure is reported by UartTask; existing control stays available. */
     (void)AdcApp_Init();
+    /* Environment is non-critical; I2C2 IO runs only after RTOS startup. */
+    (void)EnvApp_Init();
+    (void)DisplayApp_Init(); /* Noncritical OLED; KEY0 remains in ControlTask. */
 
     /* End the HAL-owned startup timebase before the port restarts the SAME
      * SysTick at 72 MHz / 1000. Clear any old pending tick so it cannot be

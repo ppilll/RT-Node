@@ -220,18 +220,23 @@ void AdcApp_Process(void)
     if (!accepted) { return; }
     /* Work on the private copy outside the critical section and the ISR. */
     for (i = 0U; i < HALF_SIZE; i++) { sum += copy[i]; }
+    taskENTER_CRITICAL();
     s_latest.raw = copy[HALF_SIZE - 1U];
     s_latest.avg = (uint16_t)(sum / HALF_SIZE);
     s_latest.mv = (uint16_t)((uint32_t)s_latest.avg * 3300U / 4095U);
     s_latest.n += HALF_SIZE;
     s_latest.valid = true;
+    taskEXIT_CRITICAL();
 }
 
 bool AdcApp_GetLatest(AdcApp_Result *out)
 {
     if (out == NULL) { return false; }
+    /* DisplayTask is now a second reader. UartTask alone still processes ADC. */
+    taskENTER_CRITICAL();
     *out = s_latest;
     out->valid = out->valid && (s_status == ADC_APP_RUNNING);
+    taskEXIT_CRITICAL();
     return out->valid;
 }
 

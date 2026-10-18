@@ -43,6 +43,7 @@ typedef struct {
     uint16_t epoch, last_action;
     uint8_t reason;
     bool enabled, action_accepted, remote_fresh;
+    bool key0_stop_latched; /* Local read-only flag; never added to CAN wire STATUS. */
     uint32_t boundary_tick, remote_tick, revision;
 } ControlStatusSnapshot;
 /* Task context, CanTask producer; complete copies under short critical sections.
