@@ -1,0 +1,31 @@
+{
+  "stage0": {
+    "IntelHex": "PASS_CHECKSUM_EOF_FLASH_RANGE",
+    "DataBytes": 21848,
+    "Start": "0x8000000",
+    "EndInclusive": "0x8005557",
+    "BuildPass": true,
+    "HexSHA256": "6796810E1F31633C8FA10EDB4C7202585F39EC86A2C98B86B7BDEE358DB4F846",
+    "StaticMaxStackBytes": 264,
+    "StaticStackCaveat": "Linker estimate includes unknowns; no live stack/WCET measurement",
+    "EnableRemoved": true,
+    "ApplyRemoved": true
+  },
+  "stage1": {
+    "IntelHex": "PASS_CHECKSUM_EOF_FLASH_RANGE",
+    "DataBytes": 24120,
+    "Start": "0x8000000",
+    "EndInclusive": "0x8005e37",
+    "BuildPass": true,
+    "HexSHA256": "7788EF5EC0BAA770F9A752573A67267779EB57FC674A3B5D638DD541CECEA5B9",
+    "StaticMaxStackBytes": 380,
+    "StaticStackCaveat": "Linker estimate includes unknowns; no live stack/WCET measurement",
+    "EnableRemoved": false,
+    "ApplyRemoved": false
+  },
+  "ProtectedSourcesAndProject": "UNCHANGED_FROM_HEAD",
+  "CAN_Init_Msp_IRQ_Callbacks": "UNCHANGED_FROM_HEAD",
+  "Stage2": "NOT_AUTHORIZED_NOT_BUILT",
+  "Hardware": "NOT_RUN_T2_T3_T4_NOT_TESTED",
+  "RK3588Helper": "SYNTAX_HELP_GOLDEN_FRAMES_FAKE_STATUS_PASS; LIVE_SOCKETCAN_NOT_RUN"
+}

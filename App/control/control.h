@@ -33,4 +33,24 @@ bool Control_Init(void);
 /* Task-context read-only copy. No UART/mailbox or output authorization. */
 void Control_GetDiagnostics(ControlDiagnostics *out);
 
+/* P3a frozen wire state values; distinct from historical ControlMode. */
+typedef enum {
+    P3B_DISABLED = 0, P3B_WAIT_LOCAL, P3B_PRIMING_LOCAL, P3B_ACTIVE_LOCAL,
+    P3B_WAIT_REMOTE, P3B_PRIMING_REMOTE, P3B_ACTIVE_REMOTE, P3B_FAULT
+} ControlWireState;
+typedef struct {
+    ControlWireState state;
+    uint16_t epoch, last_action;
+    uint8_t reason;
+    bool enabled, action_accepted, remote_fresh;
+    uint32_t boundary_tick, remote_tick, revision;
+} ControlStatusSnapshot;
+/* Task context, CanTask producer; complete copies under short critical sections.
+ * No actuator access. ISR reception tick MUST be preserved. */
+void Control_PostRemote(uint16_t epoch, uint16_t seq, uint16_t pan, uint16_t tilt,
+                        uint32_t received_tick);
+void Control_PostMode(uint8_t mode, uint16_t action, uint16_t epoch, uint32_t received_tick);
+void Control_PostStop(uint16_t action);
+void Control_GetStatus(ControlStatusSnapshot *out);
+
 #endif

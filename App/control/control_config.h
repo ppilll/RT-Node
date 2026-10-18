@@ -49,5 +49,6 @@
 #define CONTROL_STACK_WORDS        256U
 
 #include "p2b_config.h"
+#include "p3b_config.h"
 
 #endif

@@ -9,9 +9,8 @@
 #include "imu.h"
 #include <string.h>
 
-#if (P2B_OUTPUT_STAGE != 0) || P1A_AUTOTEST_ENABLE || \
-    P1A_ACTUATOR_TEST_ENABLE || P1B_AUTOTEST_ENABLE
-#error "P3a requires Stage0 and all PWM output tests OFF"
+#if P1A_AUTOTEST_ENABLE || P1A_ACTUATOR_TEST_ENABLE || P1B_AUTOTEST_ENABLE
+#error "P3b requires historical P1/P2 output tests OFF"
 #endif
 #if (configTICK_RATE_HZ != 1000) || (configUSE_16_BIT_TICKS != 0) || \
     (configSUPPORT_STATIC_ALLOCATION != 1) || (configSUPPORT_DYNAMIC_ALLOCATION != 0)
@@ -31,9 +30,6 @@
 #define CAN_STACK_WORDS      384U
 #define CAN_STATUS_TICKS     100U
 #define CAN_HEARTBEAT_TICKS  500U
-#define CAN_REASON_STOP     0x02U
-#define CAN_REASON_OVERFLOW 0x04U
-#define CAN_REASON_REJECTED 0x05U
 
 typedef char CanTickWidthMustBe32[(sizeof(TickType_t) == sizeof(uint32_t)) ? 1 : -1];
 typedef struct
@@ -55,14 +51,20 @@ static volatile uint32_t s_rx_overflow;
 static volatile uint32_t s_can_error;
 static volatile uint32_t s_start_failed;
 
-/* CanTask is the sole protocol-state writer. No control mailbox exists. */
-static bool s_has_heartbeat, s_has_action, s_has_remote_seq;
-static uint16_t s_heartbeat_counter, s_action_fence, s_remote_seq;
+/* Heartbeat is independent of the ControlTask command/session lifetime. */
+static bool s_has_heartbeat;
+static uint16_t s_heartbeat_counter;
 static TickType_t s_heartbeat_tick;
-static uint16_t s_last_action;
-static bool s_action_accepted;
-static uint8_t s_reason;
-static uint32_t s_remote_ignored_count;
+
+bool CanApp_TakeOverflow(void)
+{
+    bool overflow;
+    taskENTER_CRITICAL();
+    overflow = s_rx_overflow != 0U;
+    s_rx_overflow = 0U;
+    taskEXIT_CRITICAL();
+    return overflow;
+}
 
 void USB_LP_CAN1_RX0_IRQHandler(void);
 void CAN1_SCE_IRQHandler(void);
@@ -84,15 +86,6 @@ static bool ReservedZero(const uint8_t *p)
     return (p[4] | p[5] | p[6] | p[7]) == 0U;
 }
 
-static void AdvanceActionFence(uint16_t action)
-{
-    if (!s_has_action || IsNew16(action, s_action_fence))
-    {
-        s_has_action = true;
-        s_action_fence = action;
-    }
-}
-
 /* true requests an event STATUS. Invalid frames have no protocol side effect. */
 static bool ProcessFrame(const CanRxFrame *frame)
 {
@@ -108,40 +101,18 @@ static bool ProcessFrame(const CanRxFrame *frame)
         uint16_t seq = Read16(p + 2);
         uint16_t pan = Read16(p + 4);
         uint16_t tilt = Read16(p + 6);
-        if ((epoch == 0U) && (pan >= 1000U) && (pan <= 2000U) &&
-            (tilt >= 1200U) && (tilt <= 1600U) &&
-            (!s_has_remote_seq || IsNew16(seq, s_remote_seq)))
-        {
-            s_has_remote_seq = true;
-            s_remote_seq = seq;
-            s_remote_ignored_count++;
-        }
-        /* Even a fresh epoch0 frame is discarded in DISABLED. No command
-         * snapshot, control call, TTL refresh, ACK or output operation. */
+        Control_PostRemote(epoch, seq, pan, tilt, frame->received_tick);
         return false;
     }
     case CAN_MODE_ID:
         if ((p[0] != 1U) || (p[1] > 2U) || (p[6] != 0U) || (p[7] != 0U))
         { return false; }
-        action = Read16(p + 2);
-        AdvanceActionFence(action);
-        /* P3a rejects EVERY syntactically legal request, including DISABLED,
-         * same/different-content duplicates, old IDs and any expected_epoch.
-         * New IDs consume the fence even when expected_epoch is wrong.
-         * No accepted result can be replayed; no mode/session is created. */
-        s_last_action = action;
-        s_action_accepted = false;
-        s_reason = CAN_REASON_REJECTED;
-        return true;
+        Control_PostMode(p[1], Read16(p + 2), Read16(p + 4), frame->received_tick);
+        return false; /* STATUS acceptance comes only from ControlTask. */
     case CAN_STOP_ID:
         if ((p[0] != 1U) || (p[1] != 1U) || !ReservedZero(p)) { return false; }
-        action = Read16(p + 2);
-        AdvanceActionFence(action);
-        s_last_action = action;
-        s_action_accepted = true;
-        s_reason = CAN_REASON_STOP;
-        /* Already disabled: an idempotent safety acknowledgement only. */
-        return true;
+        Control_PostStop(Read16(p + 2));
+        return false;
     case CAN_HEARTBEAT_ID:
         if ((p[0] != 1U) || (p[1] != 0U) || !ReservedZero(p)) { return false; }
         action = Read16(p + 2);
@@ -157,37 +128,36 @@ static bool ProcessFrame(const CanRxFrame *frame)
     }
 }
 
-static void MakeStatus(uint8_t *data)
+static uint32_t MakeStatus(uint8_t *data)
 {
-    ControlDiagnostics control;
+    ControlStatusSnapshot control;
     ImuAttitudeSnapshot imu;
     bool imu_available;
     TickType_t now;
-    Control_GetDiagnostics(&control);
+    Control_GetStatus(&control);
     imu_available = Imu_GetSnapshot(&imu);
     /* Read time AFTER snapshot copies: a preemption cannot make a new IMU
      * sample appear to have a timestamp in the future. */
     now = xTaskGetTickCount();
     memset(data, 0, 8U);
     data[0] = 1U;
-    data[2] = s_reason;
-    if ((control.mode == CONTROL_FAULT) || (control.fault != CONTROL_FAULT_NONE))
-    {
-        data[1] = 7U;
-        data[2] = (uint8_t)(0x80U + (uint32_t)control.fault);
-    }
+    data[1] = (uint8_t)control.state;
+    data[2] = control.reason;
+    if (control.enabled) { data[3] |= 0x01U; }
+    if (control.remote_fresh && (uint32_t)(now - control.remote_tick) < 100U)
+    { data[3] |= 0x08U; }
+    data[4] = (uint8_t)control.epoch;
+    data[5] = (uint8_t)(control.epoch >> 8);
     if (imu_available && (imu.state == IMU_READY) && imu.valid &&
         ((uint32_t)(now - imu.sample_tick) < 40U)) { data[3] |= 0x02U; }
     if (s_has_heartbeat && ((TickType_t)(now - s_heartbeat_tick) < CAN_HEARTBEAT_TICKS))
     { data[3] |= 0x04U; }
     /* ErrorCode is historical/sticky; ESR reflects actual bus-off/recovery. */
     if ((s_can.Instance->ESR & CAN_ESR_BOFF) != 0U) { data[3] |= 0x10U; }
-    if (s_action_accepted) { data[3] |= 0x20U; }
-    data[6] = (uint8_t)s_last_action;
-    data[7] = (uint8_t)(s_last_action >> 8);
-    /* Stage0 guard proves disabled, epoch=0 and flags bit0/bit3=0. Existing
-     * Actuator latches are observed by higher-priority ControlTask <=20 ticks;
-     * fatal handlers halt scheduling, so no task can promise STATUS then. */
+    if (control.action_accepted) { data[3] |= 0x20U; }
+    data[6] = (uint8_t)control.last_action;
+    data[7] = (uint8_t)(control.last_action >> 8);
+    return control.revision;
 }
 
 static void SendStatus(uint8_t *data)
@@ -211,6 +181,7 @@ static void CanTask(void *argument)
     uint8_t data[8], previous[8] = {0};
     TickType_t periodic_tick, now, elapsed, wait_ticks;
     bool event = true;
+    uint32_t revision, previous_revision = 0U;
     bool started;
     (void)argument;
     configASSERT(xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
@@ -236,15 +207,9 @@ static void CanTask(void *argument)
     periodic_tick = xTaskGetTickCount();
     for (;;)
     {
-        uint32_t overflow;
-        /* Do not replace a just-processed action response with overflow.
-         * Leave it pending for the next task iteration (no ISR RMW race). */
-        taskENTER_CRITICAL();
-        overflow = event ? 0U : s_rx_overflow;
-        if (overflow != 0U) { s_rx_overflow = 0U; }
-        taskEXIT_CRITICAL();
-        if (overflow != 0U) { s_reason = CAN_REASON_OVERFLOW; event = true; }
-        MakeStatus(data);
+        revision = MakeStatus(data);
+        event = event || revision != previous_revision;
+        previous_revision = revision;
         now = xTaskGetTickCount();
         elapsed = (TickType_t)(now - periodic_tick);
         if (event || (elapsed >= CAN_STATUS_TICKS) || (memcmp(data, previous, 8U) != 0))
@@ -255,6 +220,7 @@ static void CanTask(void *argument)
         }
         if (elapsed >= CAN_STATUS_TICKS) { periodic_tick = now; elapsed = 0U; }
         wait_ticks = CAN_STATUS_TICKS - elapsed;
+        if (wait_ticks > 20U) { wait_ticks = 20U; }
         if (xQueueReceive(s_queue, &frame, wait_ticks) == pdPASS)
         {
             event = ProcessFrame(&frame);

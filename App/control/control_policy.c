@@ -12,8 +12,9 @@ void ControlSession_Close(ControlSession *session, ControlFault fault)
 
 static bool AuthorizeSource(ControlSession *session, ControlSource source)
 {
-    if (session->authorization_used || session->terminal) { return false; }
-    session->authorization_used = true;
+    if (session->authorized || session->terminal || session->fault != CONTROL_FAULT_NONE ||
+        ((source == CONTROL_SOURCE_TEST) && session->authorization_used)) { return false; }
+    if (source == CONTROL_SOURCE_TEST) { session->authorization_used = true; }
     session->authorized = true;
     session->expected_source = source;
     return true;
@@ -27,6 +28,21 @@ bool ControlSession_Authorize(ControlSession *session)
 bool ControlSession_AuthorizeLocal(ControlSession *session)
 {
     return AuthorizeSource(session, CONTROL_SOURCE_LOCAL_IMU);
+}
+
+bool ControlSession_AuthorizeRemote(ControlSession *session)
+{
+    return AuthorizeSource(session, CONTROL_SOURCE_REMOTE_CAN);
+}
+
+bool ControlSession_DisarmNormal(ControlSession *session)
+{
+    if (session->terminal || session->fault != CONTROL_FAULT_NONE) { return false; }
+    session->authorized = false;
+    session->expected_source = CONTROL_SOURCE_NONE;
+    session->has_generation = false;
+    session->last_generation = 0U;
+    return true;
 }
 
 bool ControlSession_Accept(ControlSession *session,
@@ -54,7 +70,8 @@ bool ControlSession_Accept(ControlSession *session,
     session->last_generation = command->generation;
     session->has_generation = true;
     if (((session->expected_source != CONTROL_SOURCE_TEST) &&
-         (session->expected_source != CONTROL_SOURCE_LOCAL_IMU)) ||
+         (session->expected_source != CONTROL_SOURCE_LOCAL_IMU) &&
+         (session->expected_source != CONTROL_SOURCE_REMOTE_CAN)) ||
         (command->source != session->expected_source) || !command->valid ||
         (command->ttl_ticks == 0U) || (command->ttl_ticks > CONTROL_MAX_TTL_TICKS))
     {

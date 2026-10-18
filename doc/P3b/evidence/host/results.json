@@ -1,0 +1,500 @@
+[
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "/DP3B_OUTPUT_STAGE=0",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\local_follow.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\tests\\controller_test.c",
+      "/Fecontroller.exe"
+    ],
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\nlocal_follow.c\ncontroller_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "nominal"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 nominal (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "busy"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 busy (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "duplicate"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 duplicate (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "mode_errors"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 mode_errors (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "stop"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 stop (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "timeout"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 timeout (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "overflow"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 overflow (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "invalid"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 invalid (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "remote_imu_failed"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 remote_imu_failed (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "rollover"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 rollover (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "switch"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 switch (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "local"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 local (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "boot_hold"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 boot_hold (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "fault"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 fault (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "local_fault"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 local_fault (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage0\\controller.exe",
+      "limits"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage0 limits (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "/DP3B_OUTPUT_STAGE=1",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\local_follow.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\tests\\controller_test.c",
+      "/Fecontroller.exe"
+    ],
+    "returncode": 0,
+    "stdout": "control.c\ncontrol_policy.c\nlocal_follow.c\ncontroller_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "nominal"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 nominal (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "busy"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 busy (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "duplicate"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 duplicate (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "mode_errors"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 mode_errors (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "stop"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 stop (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "timeout"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 timeout (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "overflow"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 overflow (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "invalid"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 invalid (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "remote_imu_failed"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 remote_imu_failed (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "rollover"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 rollover (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "switch"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 switch (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "local"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 local (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "boot_hold"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 boot_hold (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "fault"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 fault (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "local_fault"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 local_fault (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\stage1\\controller.exe",
+      "limits"
+    ],
+    "returncode": 0,
+    "stdout": "HOST PASS stage1 limits (synthetic only)\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\policy_test.c",
+      "/Fepolicy.exe"
+    ],
+    "returncode": 0,
+    "stdout": "control_policy.c\npolicy_test.c\n\u59dd\uff45\u6e6a\u9422\u71b8\u579a\u6d60\uff47\u721c...\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P3b\\evidence\\host\\policy\\policy.exe"
+    ],
+    "returncode": 0,
+    "stdout": "PASS: policy authorization, TTL/generation boundaries, wraps, ranges, terminal replay\n",
+    "stderr": "",
+    "expected": 0
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "/DP3B_OUTPUT_STAGE=2",
+      "/c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "returncode": 2,
+    "stdout": "control_policy.c\nF:\\\u5b93\u5c7d\u53c6\u5bee\u5ed8inux\u701b\ufe3f\u7bc4\u74a7\u52ec\u67a1\\RT-Node\\App\\control\\p3b_config.h(17): fatal error C1189: #error:  \"Stage2 requires separate explicit user approval\"\n",
+    "stderr": "",
+    "expected": 1
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "/DP3B_OUTPUT_STAGE=3",
+      "/c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "returncode": 2,
+    "stdout": "control_policy.c\nF:\\\u5b93\u5c7d\u53c6\u5bee\u5ed8inux\u701b\ufe3f\u7bc4\u74a7\u52ec\u67a1\\RT-Node\\App\\control\\p3b_config.h(13): fatal error C1189: #error:  \"P3B_OUTPUT_STAGE must be 0..2\"\n",
+    "stderr": "",
+    "expected": 1
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "/DP3B_LOADED_APPROVED=1",
+      "/c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "returncode": 2,
+    "stdout": "control_policy.c\nF:\\\u5b93\u5c7d\u53c6\u5bee\u5ed8inux\u701b\ufe3f\u7bc4\u74a7\u52ec\u67a1\\RT-Node\\App\\control\\p3b_config.h(20): fatal error C1189: #error:  \"Loaded approval belongs only to Stage2\"\n",
+    "stderr": "",
+    "expected": 1
+  },
+  {
+    "command": [
+      "cl.exe",
+      "/nologo",
+      "/TC",
+      "/std:c11",
+      "/W4",
+      "/WX",
+      "/O2",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P2b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\doc\\P1b\\tests\\stubs",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\actuator\\include",
+      "/IF:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\imu\\include",
+      "/DP2B_OUTPUT_STAGE=1",
+      "/DP2B_UNLOADED_ACK=1",
+      "/DP2B_OUTPUT_ARM_KEY=0xB2201500UL",
+      "/c",
+      "F:\\\u5d4c\u5165\u5f0fLinux\u5b66\u4e60\u8d44\u6599\\RT-Node\\App\\control\\control_policy.c"
+    ],
+    "returncode": 2,
+    "stdout": "control_policy.c\nF:\\\u5b93\u5c7d\u53c6\u5bee\u5ed8inux\u701b\ufe3f\u7bc4\u74a7\u52ec\u67a1\\RT-Node\\App\\control\\p3b_config.h(23): fatal error C1189: #error:  \"P3b replaces P2b output test stages; keep P2B_OUTPUT_STAGE=0\"\n",
+    "stderr": "",
+    "expected": 1
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "StartedUtc": "2026-10-17T08:41:30.0839288+00:00",
+  "EndedUtc": "2026-10-17T08:41:37.5768068+00:00",
+  "ExitCode": 0,
+  "BuildPass": true,
+  "Defines": "P1A_ACTUATOR_TEST_ENABLE=0,P1A_AUTOTEST_ENABLE=0,P1A_AUTOTEST_CASE=1,P1B_AUTOTEST_ENABLE=0,STM32F103xE,USE_HAL_DRIVER,P3B_OUTPUT_STAGE=0",
+  "Stage": 0,
+  "Timing": "P3A_UNCHANGED_USER_REPORTED_PASS",
+  "TimingSource": "App/can/can_timing.h",
+  "SourceHead": "b2c1f34595ae125a3b27f2d5143c4202762a705c",
+  "P3aT1": "USER_REPORTED_PASS",
+  "T2": "NOT_TESTED",
+  "T3": "NOT_TESTED",
+  "T4": "NOT_TESTED",
+  "Download": "NOT_RUN",
+  "Hex": "P3b_CAN500k_STAGE0_T2_T4.hex",
+  "HexSHA256": "6796810E1F31633C8FA10EDB4C7202585F39EC86A2C98B86B7BDEE358DB4F846",
+  "Note": "Stage1 requires servo power AND signals disconnected. Stage2 NOT_AUTHORIZED. Project/existing outputs restored; no download performed."
+}

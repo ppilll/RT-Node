@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 typedef enum { CONTROL_SOURCE_NONE = 0, CONTROL_SOURCE_TEST = 1,
-               CONTROL_SOURCE_LOCAL_IMU = 2 } ControlSource;
+               CONTROL_SOURCE_LOCAL_IMU = 2, CONTROL_SOURCE_REMOTE_CAN = 3 } ControlSource;
 
 /* Fixed uint32_t ticks: this build requires a 32-bit, 1 kHz TickType_t.
  * Only ControlTask constructs and consumes full local snapshots.
@@ -37,8 +37,8 @@ typedef enum
 } ControlFault;
 
 /* Zero-initialized once at task entry; never reset to clear a fault.
- * Authorization is consumed once per boot. Closing is terminal, even after
- * successful test completion. There is deliberately no runtime rearm API.
+ * TEST authorization is consumed once per boot. Close remains terminal.
+ * Normal LOCAL/REMOTE disarm permits a new session, never clears a fault.
  */
 typedef struct
 {
@@ -53,6 +53,9 @@ typedef struct
 
 bool ControlSession_Authorize(ControlSession *session);
 bool ControlSession_AuthorizeLocal(ControlSession *session);
+bool ControlSession_AuthorizeRemote(ControlSession *session);
+/* Caller MUST disable hardware first. Never resets terminal/fault/TEST use. */
+bool ControlSession_DisarmNormal(ControlSession *session);
 bool ControlSession_Accept(ControlSession *session,
                            const ControlCommandSnapshot *command, uint32_t now);
 void ControlSession_Close(ControlSession *session, ControlFault fault);
