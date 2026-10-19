@@ -1,3 +1,4 @@
+#define P7_METRICS_IMPLEMENTATION
 #include "control.h"
 #include "control_config.h"
 #include "../p1b_test/p1b_test.h"
@@ -27,6 +28,7 @@ static StaticTask_t s_control_tcb;
 static StackType_t s_control_stack[CONTROL_STACK_WORDS];
 static TaskHandle_t s_control_handle;
 static volatile ControlDiagnostics s_diagnostics;
+static P7MetricsState s_p7;
 static void ControlTask(void *argument);
 
 bool Control_Init(void)
@@ -44,6 +46,16 @@ void Control_GetDiagnostics(ControlDiagnostics *out)
     configASSERT(__get_IPSR() == 0U);
     taskENTER_CRITICAL();
     *out = s_diagnostics;
+    taskEXIT_CRITICAL();
+}
+
+void Control_GetP7Metrics(P7ControlMetrics *out, uint32_t *violations)
+{
+    if (out == NULL || violations == NULL) { return; }
+    configASSERT(__get_IPSR() == 0U);
+    taskENTER_CRITICAL();
+    *out = s_p7.value;
+    *violations = s_p7.period_violation_count;
     taskEXIT_CRITICAL();
 }
 
@@ -589,6 +601,7 @@ static void ControlTask(void *argument)
     /* Counter initialization is before the first scheduling epoch. */
     last_wake = xTaskGetTickCount();
     previous_wake = last_wake;
+    s_p7.boot_tick = last_wake;
 
     for (;;)
     {
@@ -603,6 +616,8 @@ static void ControlTask(void *argument)
         }
 #endif
         now = xTaskGetTickCount();
+        P7Entry(&s_p7, now, entry_cycle,
+                (DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) != 0U);
         period = (uint32_t)(now - previous_wake);
         s_diagnostics.wake_count++;
         s_diagnostics.last_period_ticks = has_previous ? period : 0U;
@@ -701,6 +716,7 @@ static void ControlTask(void *argument)
             PublishStatus(&session);
 #endif
         }
+        P7Elapsed(&s_p7, elapsed_cycles);
         previous_wake = now;
         previous_cycle = entry_cycle;
         has_previous = true;

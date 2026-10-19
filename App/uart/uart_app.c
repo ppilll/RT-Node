@@ -3,6 +3,7 @@
 #include "env_app.h"
 #include "../health/health_app.h"
 #include "../control/control.h"
+#include "../can/can_app.h"
 #include "../actuator/include/actuator.h"
 #include "stm32f1xx_hal.h"
 #include "FreeRTOS.h"
@@ -456,6 +457,72 @@ static uint16_t HealthReply(char *reply)
     return (uint16_t)(end - reply);
 }
 
+/* Fixed four uint32 fields. Max prefix length 3 => 57 bytes including CRLF.
+ * No NUL is transmitted or required. Only called by the existing UartTask. */
+static uint16_t P7Format(char *reply, const char *prefix, const char *keys,
+                         const uint32_t *values)
+{
+    uint32_t i;
+    char *end = reply;
+    while (*prefix != '\0') { *end++ = *prefix++; }
+    for (i = 0U; i < 4U; ++i)
+    {
+        *end++ = ' '; *end++ = keys[i]; *end++ = '=';
+        end = AppendDecimal(end, values[i]);
+    }
+    *end++ = '\r'; *end++ = '\n';
+    return (uint16_t)(end - reply);
+}
+static uint16_t P7Reply(const char *command, char *reply)
+{
+    uint32_t values[4];
+    if (strcmp(command, "PERF?") == 0 || strcmp(command, "PERF3?") == 0)
+    {
+        P7ControlMetrics p;
+        uint32_t violations;
+        Control_GetP7Metrics(&p, &violations);
+        if (strcmp(command, "PERF?") == 0)
+        {
+            values[0] = p.period_min_cycles; values[1] = p.period_max_cycles;
+            values[2] = p.elapsed_max_cycles; values[3] = violations;
+            return P7Format(reply, "P7", "abxv", values);
+        }
+        values[0] = p.window_start_tick; values[1] = p.observed_tick;
+        values[2] = p.flags; values[3] = p.invalid_samples;
+        return P7Format(reply, "P7W", "tufd", values);
+    }
+    if (strcmp(command, "PERF2?") == 0)
+    {
+        P7ControlMetrics p;
+        ControlDiagnostics c;
+        HealthRuntimeSnapshot h;
+        uint32_t violations;
+        Control_GetP7Metrics(&p, &violations);
+        Control_GetDiagnostics(&c); Health_GetRuntimeSnapshot(&h);
+        values[0] = p.period_samples; values[1] = c.min_control_stack_words;
+        values[2] = c.min_idle_stack_words; values[3] = h.min_stack_words;
+        return P7Format(reply, "P7N", "ncih", values);
+    }
+    if (strcmp(command, "PERF4?") == 0)
+    {
+        ControlDiagnostics c;
+        Control_GetDiagnostics(&c);
+        values[0] = (uint32_t)c.mode; values[1] = (uint32_t)c.fault;
+        values[2] = c.wake_count; values[3] = c.late_count;
+        return P7Format(reply, "P7S", "mfwl", values);
+    }
+    if (strcmp(command, "CANC?") == 0)
+    {
+        CanDisplaySnapshot c;
+        CanRxEvents e;
+        (void)CanApp_GetDisplaySnapshot(&c); CanApp_GetRxEvents(&e);
+        values[0] = c.rx_count; values[1] = e.queue_fail_events;
+        values[2] = e.overrun_callback_events; values[3] = e.read_fail_events;
+        return P7Format(reply, "CAN", "rqed", values);
+    }
+    return 0U;
+}
+
 static bool LocalRecoverySafe(void)
 {
     HealthBootSnapshot boot;
@@ -526,6 +593,10 @@ static uint16_t ParseByte(uint8_t byte, char *reply)
         memcpy(reply, "SAFE DENIED\r\n", 13U); return 13U;
     }
     s_safe_ready = false; /* A different complete command cancels old intent. */
+    {
+        uint16_t p7_size = P7Reply(s_line, reply);
+        if (p7_size != 0U) { return p7_size; }
+    }
     if (strcmp(s_line, "SAFE CLEAR?") == 0)
     {
         if (LocalRecoverySafe())

@@ -13,6 +13,11 @@ typedef struct {
 /* Last frame dequeued by CanTask (including rejected format/content).
  * Requests are decoded STD/DATA/DLC8 0x180 values, NOT control acceptance. */
 bool CanApp_GetDisplaySnapshot(CanDisplaySnapshot *out);
+typedef struct {
+    uint32_t queue_fail_events, overrun_callback_events, read_fail_events;
+} CanRxEvents;
+/* Saturating event counts, not lost-frame counts. Does not take overflow. */
+void CanApp_GetRxEvents(CanRxEvents *out);
 
 /* Once after Imu_Init, before scheduler start. No RX notifications here. */
 bool CanApp_Init(void);

@@ -123,7 +123,7 @@ def stream(link, args):
         raise RuntimeError('ACTIVE_REMOTE/enabled not observed; verify Stage1 firmware (Stage0 cannot output)')
     if args.end == 'local':
         link.mode(1)
-        print('WAIT_LOCAL: release KEY0, then press after IMU READY. No further heartbeat is sent.', flush=True)
+        print('LOCAL requested: P6 policy/IMU freshness govern authorization. KEY0 (PE4) is latched STOP; KEY1 only changes OLED page. Do not press KEY0 to start. No further heartbeat is sent.', flush=True)
     elif args.end == 'timeout':
         print('Stopping CONTROL; continuing only HEARTBEAT for 0.6s.', flush=True)
         deadline = time.monotonic() + 0.6

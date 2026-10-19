@@ -21,6 +21,26 @@ int main(void)
     ControlCommandSnapshot c = {CONTROL_SOURCE_LOCAL_IMU, 0xffffffffU,
                                 0xfffffff0U, 40U, true, 1500, 1500};
     int32_t pan = 0, tilt = 0, i;
+    /* P7 additions: explicit near-boundary and 5deg/15us steady targets. */
+    assert(LocalFollow_Start(&f, 0, 0));
+    assert(LocalFollow_Target(&f, 1.9f, -1.9f, &pan, &tilt));
+    assert(pan == 1500 && tilt == 1500);
+    assert(LocalFollow_Target(&f, -2.0f, 2.0f, &pan, &tilt));
+    assert(pan == 1500 && tilt == 1500);
+    for (i = 0; i < 8; i++)
+    { assert(LocalFollow_Target(&f, 5, 0, &pan, &tilt)); }
+    assert(pan == 1500 + 15 * P2B_PAN_SIGN && tilt == 1500);
+    for (i = 0; i < 16; i++)
+    { assert(LocalFollow_Target(&f, 0, -5, &pan, &tilt)); }
+    assert(pan == 1500 && tilt == 1500 - 15 * P2B_TILT_SIGN);
+    assert(LocalFollow_Start(&f, 0, 0));
+    for (i = 0; i < 15; i++)
+    {
+        assert(LocalFollow_Target(&f, 10, 0, &pan, &tilt));
+        assert(pan == 1500 + (i + 1) * 2 * P2B_PAN_SIGN);
+    }
+    assert(pan == 1500 + 30 * P2B_PAN_SIGN && tilt == 1500);
+    f = (LocalFollowState){0};
     assert(!LocalFollow_Target(&f, 0, 0, &pan, &tilt));
     assert(!LocalFollow_Start(&f, NAN, 0));
     assert(!LocalFollow_Start(&f, 0, INFINITY));

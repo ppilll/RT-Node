@@ -1,3 +1,5 @@
+> P7更正：reason01线上数值不变，当前源码含义为KEY0(PE4) STOP锁存；KEY1(PE3)仅OLED翻页。本页其他旧按键授权描述属于历史设计，当前以[现场指南](../P7/operator_runbook.md)为准。
+
 # P3b 冻结接口契约 V1.0
 
 > **优先级声明**：`doc/P3a/interfaces.md` 是 P3a/P3b 共享的 CAN 线上协议权威文件。P3b 不更改 ID、DLC、字节序、取值、状态码、reason码或epoch/seq/action语义。本文仅固定 P3b 内部数据接口和控制效果；若出现矛盾先停止修改并在 handoff 标明，不可悄悄修改线协议。
@@ -14,7 +16,7 @@
 
 0x180 Pan合法 1000..2000μs，Tilt合法1200..1600μs；必须与当前 epoch 相同，seq首次任意、后续 `(uint16_t)(seq-prev)` 满足 `0<delta<0x8000` 才算新控制；本地 ISR tick 是唯一新鲜度源。0x181 除语法还需正确 epoch/动作序号，只有 ControlTask 可最终接受模式；0x182只要语法合法就必须立即成为待处理全局 STOP，不依赖 epoch、旧action_id也不得阻挡。0x183 heartbeat 仅更新 bit2，**不得刷新远程命令年龄**。
 
-STATUS state：`0 DISABLED, 1 WAIT_LOCAL, 2 PRIMING_LOCAL, 3 ACTIVE_LOCAL, 4 WAIT_REMOTE, 5 PRIMING_REMOTE, 6 ACTIVE_REMOTE, 7 FAULT`。reason：`00 NONE, 01 KEY1_STOP, 02 REMOTE_STOP, 03 REMOTE_TIMEOUT, 04 CAN_RX_OVERFLOW, 05 REQUEST_REJECTED, 0x80+n ControlFault n`。flags：bit0真正 enabled、bit1 IMU ready/fresh、bit2 heartbeat <500ms、bit3 REMOTE snapshot fresh (<100ms)/epoch匹配且模式适用、bit4 bus-off、bit5最近动作接受；6..7为0。STATUS 不是保证送达的专用ACK，模式动作应串行等待反馈。
+STATUS state：`0 DISABLED, 1 WAIT_LOCAL, 2 PRIMING_LOCAL, 3 ACTIVE_LOCAL, 4 WAIT_REMOTE, 5 PRIMING_REMOTE, 6 ACTIVE_REMOTE, 7 FAULT`。reason：`00 NONE, 01 KEY0_STOP, 02 REMOTE_STOP, 03 REMOTE_TIMEOUT, 04 CAN_RX_OVERFLOW, 05 REQUEST_REJECTED, 0x80+n ControlFault n`。flags：bit0真正 enabled、bit1 IMU ready/fresh、bit2 heartbeat <500ms、bit3 REMOTE snapshot fresh (<100ms)/epoch匹配且模式适用、bit4 bus-off、bit5最近动作接受；6..7为0。STATUS 不是保证送达的专用ACK，模式动作应串行等待反馈。
 
 ## 2. P3a源码中真实接口及改变范围
 
@@ -42,7 +44,7 @@ STATUS state：`0 DISABLED, 1 WAIT_LOCAL, 2 PRIMING_LOCAL, 3 ACTIVE_LOCAL, 4 WAI
 
 ## 4. 时序与冲突消解
 
-- **事件优先级**：已有 fatal fault / Actuator fault（最高且不可清除） → `stop_pending`（GLOBAL）/KEY1 STOP → RX overflow（保守Disable） → 模式请求 → 当前模式新目标/本地IMU目标 → 周期输出。普通CAN heartbeat失效不停止LOCAL。
+- **事件优先级**：已有 fatal fault / Actuator fault（最高且不可清除） → `stop_pending`（GLOBAL）/KEY0 STOP锁存 → RX overflow（保守Disable） → 模式请求 → 当前模式新目标/本地IMU目标 → 周期输出。普通CAN heartbeat失效不停止LOCAL。
 - STOP在ControlTask本周期优先读取并处理，**先Disable再丢弃目标、递增epoch、关授权、写STATUS**；若已DISABLED则不重复递增epoch。并发 MODE_REQUEST/目标必须作废并禁止STOP之后同周期重新Enable。
 - 0x181新动作序号采用16bit半环；新语法合法的请求即便epoch错误也消耗动作fence；相同ID同payload重复不再次切换，可关联缓存的最近一次结果；同ID不同payload/旧ID拒绝。以最后已处理动作ID反馈；不要让非法格式刷新门槛。
 - 远程控制新 `seq` 由 CanTask 维护，每次新合法帧生成**单调增加的32bit generation**，绝不把16bit seq直接塞入 `ControlSession_Accept` 的32bit半环生成号。ControlTask 仅当看到**未消费的**generation才调用 Accept；两轮读到同一帧时不再次调用；可在100ms内按现有末次目标缓步推进。收到无效帧或重复seq不得刷新 `received_tick`。

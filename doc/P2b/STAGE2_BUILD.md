@@ -1,3 +1,5 @@
+> **P7 安全更正（2026-10-19）：本页是历史 P2b/P3b 设计/测试记录，按键授权步骤不适用于当前 P5/P6 源码。当前 KEY0(PE4)=STOP 且锁存至复位，KEY1(PE3)=OLED 翻页；不得按 KEY0 启动、不得用 KEY1 停机。控制授权服从 P6 持久锁和现有 MODE 策略。Stage1/Stage2 本轮未授权，当前操作以 [P7 现场指南](../P7/operator_runbook.md) 为准。**
+
 # Stage2构建交付 — 2026-10-17
 
 **Stage2真实ARMCC5 Rebuild通过；未烧录；Stage2机械带载测试NOT_RUN。**

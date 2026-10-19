@@ -51,6 +51,20 @@ static volatile uint32_t s_rx_overflow;
 static volatile uint32_t s_can_error;
 static volatile uint32_t s_start_failed;
 static CanDisplaySnapshot s_display;
+static volatile CanRxEvents s_rx_events;
+
+static void CountEvent(volatile uint32_t *count)
+{
+    if (*count != UINT32_MAX) { ++*count; }
+}
+void CanApp_GetRxEvents(CanRxEvents *out)
+{
+    if (out == NULL) { return; }
+    configASSERT(__get_IPSR() == 0U);
+    taskENTER_CRITICAL();
+    *out = s_rx_events;
+    taskEXIT_CRITICAL();
+}
 
 bool CanApp_GetDisplaySnapshot(CanDisplaySnapshot *out)
 {
@@ -334,14 +348,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         CanRxFrame frame;
         if (HAL_CAN_GetRxFifoFillLevel(hcan, CAN_RX_FIFO0) == 0U) { break; }
         if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &header, frame.data) != HAL_OK)
-        { s_rx_overflow = 1U; break; }
+        { CountEvent(&s_rx_events.read_fail_events); s_rx_overflow = 1U; break; }
         frame.received_tick = xTaskGetTickCountFromISR();
         frame.id = (header.IDE == CAN_ID_STD) ? header.StdId : header.ExtId;
         frame.ide = header.IDE;
         frame.rtr = header.RTR;
         frame.dlc = header.DLC;
         if (xQueueSendFromISR(s_queue, &frame, &woken) != pdPASS)
-        { s_rx_overflow = 1U; }
+        { CountEvent(&s_rx_events.queue_fail_events); s_rx_overflow = 1U; }
     }
     portYIELD_FROM_ISR(woken);
 }
@@ -350,5 +364,6 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
     if (hcan != &s_can) { return; }
     s_can_error = HAL_CAN_GetError(hcan);
-    if ((s_can_error & HAL_CAN_ERROR_RX_FOV0) != 0U) { s_rx_overflow = 1U; }
+    if ((s_can_error & HAL_CAN_ERROR_RX_FOV0) != 0U)
+    { CountEvent(&s_rx_events.overrun_callback_events); s_rx_overflow = 1U; }
 }

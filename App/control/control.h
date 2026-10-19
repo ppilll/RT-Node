@@ -4,6 +4,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "control_policy.h"
+#include "p7_metrics.h"
 
 typedef enum
 {
@@ -32,6 +33,8 @@ typedef struct
 bool Control_Init(void);
 /* Task-context read-only copy. No UART/mailbox or output authorization. */
 void Control_GetDiagnostics(ControlDiagnostics *out);
+/* Task-context coherent copy; no safety-event consumption or reset. */
+void Control_GetP7Metrics(P7ControlMetrics *out, uint32_t *violations);
 
 /* P3a frozen wire state values; distinct from historical ControlMode. */
 typedef enum {
